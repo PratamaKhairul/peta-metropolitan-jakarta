@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Peta Megapolitan Jakarta — Lab Geospasial</title>
+<link rel="preconnect" href="https://geoservices.big.go.id"><link rel="preconnect" href="https://basemaps.cartocdn.com"><link rel="preconnect" href="https://cdn.jsdelivr.net"><link rel="preconnect" href="https://overpass-api.de">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+:root{--bg:rgba(255,255,255,.9);--fg:#0f172a;--mu:#64748b;--ln:rgba(15,23,42,.12);--ac:#2563eb;--chip:#f1f5f9}
+body.dark{--bg:rgba(15,23,32,.9);--fg:#e5edf5;--mu:#94a3b8;--ln:rgba(255,255,255,.14);--chip:#1e293b}
+*{box-sizing:border-box}html,body,#map{height:100%;margin:0}
+body{font:13px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--fg)}
+#panel{position:absolute;top:12px;left:12px;z-index:5;width:350px;max-height:calc(100% - 24px);display:flex;flex-direction:column;background:var(--bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--ln);border-radius:16px;box-shadow:0 8px 30px #0002}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 10px}
+h1{font-size:15px;margin:0;font-weight:650;letter-spacing:-.01em}h1 small{display:block;font-weight:400;color:var(--mu);font-size:11.5px;margin-top:2px}
+.tabs{display:flex;gap:4px;padding:0 14px 10px;overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:5px 9px;border-radius:8px;border:1px solid var(--ln);background:var(--chip);cursor:pointer;font-size:11.5px}.tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.body{overflow:auto;padding:0 14px 14px}#panel.min .body,#panel.min .tabs{display:none}
+.pane{display:none}.pane.on{display:block}
+section{padding:12px 0;border-top:1px solid var(--ln)}section:first-child{border-top:0;padding-top:2px}
+h2{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);margin:0 0 8px;font-weight:600}
+button,input,select{font:inherit;color:inherit}
+.btn{border:1px solid var(--ln);background:var(--chip);border-radius:9px;padding:6px 10px;cursor:pointer;font-size:12px}
+.btn:hover{border-color:var(--ac)}.btn.on{background:var(--ac);border-color:var(--ac);color:#fff}.btn:disabled{opacity:.4;cursor:wait}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-top:2px}.stat{background:var(--chip);border-radius:10px;padding:8px}.stat b{display:block;font-size:16px}.stat span{font-size:10.5px;color:var(--mu)}
+input[type=search],input[type=text],input[type=date],select{width:100%;padding:7px 9px;border-radius:9px;border:1px solid var(--ln);background:var(--chip);outline:none}
+input:focus,select:focus{border-color:var(--ac)}
+.sw{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer}.sw input{accent-color:var(--ac);margin:0}.ln{width:22px;border-top:3px solid;border-radius:2px;flex:0 0 22px}
+input[type=range]{width:100%;accent-color:var(--ac)}
+input[type=color]{width:28px;height:22px;padding:0;border:1px solid var(--ln);border-radius:6px;background:none}
+.ctl{display:grid;grid-template-columns:28px 1fr 1fr 74px;gap:6px;align-items:center;margin:2px 0 8px 30px}.ctl select{padding:3px 4px;font-size:11px}
+.lg{font-size:11px;color:var(--mu);margin-bottom:6px;gap:10px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.grp{display:flex;align-items:center;width:100%;text-align:left;background:none;border:0;padding:4px 3px;cursor:pointer;border-radius:6px}.grp:hover{background:var(--chip)}.grp em{margin-left:auto;font-style:normal;color:var(--mu);font-size:11px}
+#list{max-height:170px;overflow:auto}
+#status{font-size:11.5px;color:var(--mu);padding-top:8px;border-top:1px solid var(--ln);margin-top:4px}.note{font-size:10.5px;color:var(--mu);line-height:1.5;margin:6px 0 0}
+.lgd{display:flex;align-items:center;gap:6px;font-size:11px;padding:1px 0}.lgd i{width:18px;height:10px;border-radius:2px;display:inline-block;flex:0 0 18px}
+.sub{font-size:11px;color:var(--mu);margin:8px 0 3px;display:flex;justify-content:space-between}
+.rad{display:flex;align-items:center;gap:7px;padding:2px 0;cursor:pointer}.rad input{accent-color:var(--ac);margin:0}
+#bar{position:absolute;top:0;left:0;height:3px;width:0;background:var(--ac);z-index:9;transition:width .3s,opacity .6s}
+#coord{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;z-index:4;font-size:11px;padding:3px 10px;border-radius:8px;background:var(--bg);backdrop-filter:blur(8px);white-space:nowrap}
+.card{background:var(--bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--ln);border-radius:14px;box-shadow:0 8px 30px #0002;padding:12px 14px;font-size:12px}
+#cards{position:absolute;top:12px;right:56px;z-index:6;width:310px;max-height:calc(100% - 110px);overflow:auto;display:flex;flex-direction:column;gap:8px}
+#prof{position:absolute;z-index:6;left:382px;right:64px;bottom:34px;max-height:56%;overflow:auto}
+canvas.ch{width:100%;height:150px;display:block}
+.hide{display:none!important}
+table.tb{width:100%;border-collapse:collapse}.tb td{padding:2px 0;border-bottom:1px solid var(--ln);vertical-align:top}.tb td:last-child{text-align:right;font-weight:600;padding-left:8px}
+.hb{display:flex;align-items:center;gap:6px;font-size:11px}.hb i{display:block;height:8px;border-radius:3px;background:var(--ac)}.hb span{width:56px;flex:0 0 56px;color:var(--mu)}
+.card h3{margin:0 0 6px;font-size:12.5px}
+.maplibregl-popup-content{border-radius:12px;padding:12px 14px;font:inherit;color:#0f172a}.pm{color:#475569;font-size:12px;margin-top:3px}
+@media(max-width:640px){#panel{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:58%}#coord{display:none}#cards{right:8px;left:8px;width:auto;top:8px;max-height:35%}#prof{left:8px;right:8px;bottom:auto;top:8px}}
+</style></head><body>
+<div id="map"></div><div id="bar"></div><div id="coord"></div>
+<div id="cards"><div id="res" class="card hide"></div><div id="dasr" class="card hide"></div><div id="qst" class="card hide"></div></div>
+<div id="prof" class="card hide">
+ <div class="row" style="justify-content:space-between"><h3 id="pt">Profil elevasi</h3><div class="row"><span style="color:var(--mu)">Lebar penampang gempa ±</span><select id="pw" style="width:auto"><option value="25">25 km</option><option value="50" selected>50 km</option><option value="100">100 km</option><option value="200">200 km</option></select><button class="btn" id="pcl">Tutup</button></div></div>
+ <canvas class="ch" id="pc"></canvas><div id="pi" style="color:var(--mu);margin:4px 0 8px"></div>
+ <div id="pqw"><h3>Penampang hiposenter gempa (zona Benioff) — kedalaman vs jarak</h3><canvas class="ch" id="pq" style="height:190px"></canvas><div id="pqi" style="color:var(--mu);margin-top:4px"></div></div>
+</div>
+<aside id="panel">
+<header><h1>Megapolitan Jakarta<small>Lab geospasial · peta usulan batas provinsi</small></h1><button class="btn" id="min">Ciutkan</button></header>
+<div class="tabs" id="tabs">
+ <button class="tab on" data-t="wil">Wilayah</button><button class="tab" data-t="peta">Peta &amp; PJ</button><button class="tab" data-t="geo">Geologi</button><button class="tab" data-t="bnc">Bencana</button><button class="tab" data-t="mdn">Medan &amp; DAS</button><button class="tab" data-t="alt">Alat &amp; Grid</button><button class="tab" data-t="dat">Data</button>
+</div>
+<div class="body">
+
+<div class="pane on" id="p-wil">
+ <div class="stats"><div class="stat"><b id="sK">–</b><span>Kecamatan</span></div><div class="stat"><b id="sB">–</b><span>Kab./kota</span></div><div class="stat"><b id="sL">–</b><span>≈ km² poligon</span></div></div>
+ <section><h2>Cari kecamatan</h2><input type="search" id="q" list="dl" placeholder="Ketik nama kecamatan…" disabled><datalist id="dl"></datalist></section>
+ <section><h2>Batas administrasi — atur gaya</h2><div id="bnd"></div>
+  <label class="sw"><input type="checkbox" id="cas" checked><span class="ln" style="border-color:#94a3b8"></span>Garis tepi kontras otomatis (terbaca di atas citra/relief)</label>
+  <label class="sw"><input type="checkbox" data-l="kabl" checked><span class="ln" style="border-color:transparent">Aa</span>Nama kabupaten/kota</label>
+  <label class="sw"><input type="checkbox" data-l="lbl" checked><span class="ln" style="border-color:transparent">Aa</span>Nama kecamatan (zoom dekat)</label>
+  <label class="sw"><input type="checkbox" data-l="fill" checked><span class="ln" style="border-color:#94a3b8;border-top-style:double"></span>Warna wilayah</label>
+  <div class="sub"><span>Kepekatan warna wilayah</span></div><input type="range" id="op" min="0" max="60" value="16">
+  <div class="row" style="margin-top:8px"><button class="btn" id="bsr">Setel ulang gaya garis</button></div></section>
+ <section><h2>Wilayah</h2>
+  <div class="row lg"><span><i class="dot" style="background:#6366f1"></i>DKI</span><span><i class="dot" style="background:#f59e0b"></i>Jawa Barat</span><span><i class="dot" style="background:#ec4899"></i>Banten</span><span><i class="dot" style="background:#16a34a"></i>Usulan</span></div>
+  <div id="list"></div>
+  <div class="row" style="margin-top:6px"><button class="btn on" id="all" disabled>Semua wilayah</button><button class="btn" id="core" disabled>Inti Jabodetabek</button></div></section>
+</div>
+
+<div class="pane" id="p-peta">
+ <section><h2>Peta dasar</h2><div class="row" id="bases"></div></section>
+ <section><h2>Penginderaan jauh (overlay citra)</h2>
+  <div class="sub"><span>Tanggal citra harian (MODIS)</span></div><input type="date" id="pjd">
+  <div id="pjl" style="margin-top:6px"></div>
+  <p class="note">Overlay dari NASA GIBS &amp; Sentinel-2 cloudless (EOX). Bandingkan Sentinel-2 2016 vs 2023 dengan menyalakan satu per satu / mengatur opasitas untuk deteksi perubahan lahan. Jika citra harian kosong (awan/belum tersedia), ganti tanggal.</p></section>
+ <section><h2>Lapisan tematik</h2>
+  <label class="sw"><input type="checkbox" data-l="poi" checked><span class="ln" style="border-color:#92400e"></span>Kota, gunung &amp; fasilitas</label>
+  <label class="sw"><input type="checkbox" data-l="isl" checked><span class="ln" style="border-color:#6366f1"></span>Pulau-pulau Kep. Seribu</label>
+  <label class="sw"><input type="checkbox" data-l="rv" checked><span class="ln" style="border-color:#0ea5e9"></span>Sungai utama</label>
+  <label class="sw"><input type="checkbox" data-l="pk" checked><span class="ln" style="border-color:#92400e"></span>Puncak gunung &amp; ketinggian</label>
+  <label class="sw"><input type="checkbox" data-l="hill" checked><span class="ln" style="border-color:#64748b"></span>Bayangan relief</label>
+  <label class="sw"><input type="checkbox" id="t3d"><span class="ln" style="border-color:transparent">3D</span>Medan 3D (miring)</label>
+  <div id="gx"></div></section>
+</div>
+
+<div class="pane" id="p-geo">
+ <section><h2>Sesar / patahan &amp; subduksi</h2>
+  <label class="sw"><input type="checkbox" data-l="flt" checked><span class="ln" style="border-color:#dc2626"></span>Sesar &amp; megathrust (skematik)</label>
+  <label class="sw"><input type="checkbox" id="gemc"><span class="ln" style="border-color:#f97316"></span>Sesar aktif GEM GAF-DB (muat, ± puluhan MB)</label>
+  <div class="lgd"><i style="background:#dc2626"></i>Sesar geser</div><div class="lgd"><i style="background:#c2410c"></i>Sesar naik</div><div class="lgd"><i style="background:#7f1d1d"></i>Zona subduksi / megathrust (putus-putus)</div>
+  <p class="note">Jalur sesar bawaan digambar skematik dari pustaka publik (akurasi ±5–10 km) — untuk belajar, bukan untuk perencanaan teknis. Klik garis untuk deskripsi. Untuk data resmi (PuSGeN/Badan Geologi), unggah GeoJSON di tab Data.</p></section>
+ <section><h2>Seismisitas (katalog USGS)</h2>
+  <label class="sw"><input type="checkbox" id="qon"><span class="ln" style="border-color:#ef4444"></span>Tampilkan episenter gempa</label>
+  <div class="row"><select id="qp" style="flex:1"><option value="30d">30 hari terakhir · M≥2,5</option><option value="1y">1 tahun · M≥3,5</option><option value="10y" selected>10 tahun · M≥4,5</option><option value="all">1973–kini · M≥5</option></select><button class="btn" id="qld">Muat</button></div>
+  <div class="sub"><span>Mode tampilan</span></div>
+  <select id="qmode"><option value="pt">Titik (ukuran=magnitudo, warna=kedalaman)</option><option value="heat">Peta panas kerapatan</option><option value="both">Keduanya</option></select>
+  <div class="sub"><span>Magnitudo minimum</span><b id="qmv">2,5</b></div><input type="range" id="qm" min="2.5" max="7" step="0.1" value="2.5">
+  <div class="sub"><span>Kedalaman maksimum (km)</span><b id="qdv">700</b></div><input type="range" id="qd" min="10" max="700" step="10" value="700">
+  <div style="margin-top:6px"><div class="lgd"><i style="background:#ef4444"></i>0–30 km (dangkal)</div><div class="lgd"><i style="background:#f97316"></i>30–70 km</div><div class="lgd"><i style="background:#eab308"></i>70–150 km</div><div class="lgd"><i style="background:#22c55e"></i>150–300 km</div><div class="lgd"><i style="background:#3b82f6"></i>&gt;300 km</div></div>
+  <p class="note">Data diunduh langsung dari USGS (jendela 103–111°BT, 4–11,5°LS). Gambar garis di tab “Alat &amp; Grid” → Profil untuk mendapatkan penampang hiposenter.</p></section>
+ <section><h2>Gunung api &amp; kontur</h2>
+  <label class="sw"><input type="checkbox" data-l="vol" checked><span class="ln" style="border-color:#ea580c"></span>Gunung api</label>
+  <label class="sw"><input type="checkbox" data-l="volr"><span class="ln" style="border-color:#ea580c;border-top-style:dashed"></span>Radius bahaya ilustratif (5/10/15 km)</label>
+  <label class="sw"><input type="checkbox" id="cnt"><span class="ln" style="border-color:#92400e"></span>Kontur elevasi (interval otomatis menurut zoom)</label>
+  <p class="note">Kontur dihitung langsung dari DEM Terrarium; garis tebal = indeks (setiap kelipatan 5 interval). Interval: 500→5 m seiring zoom mendekat.</p></section>
+</div>
+
+<div class="pane" id="p-bnc">
+ <section><h2>Kawasan rawan (analisis DEM · indikatif)</h2>
+  <div class="row"><button class="btn" data-ana="lsr">Rawan longsor</button><button class="btn" data-ana="flo">Elevasi rendah (rob/banjir/tsunami)</button><button class="btn" data-ana="none">Matikan</button></div>
+  <div id="bncLeg" style="margin-top:8px"></div>
+  <p class="note">Ini peta indikatif turunan DEM (lereng &amp; ketinggian), BUKAN peta KRB resmi. Gunakan InaRISK BNPB / PVMBG / Badan Geologi untuk dokumen resmi; tempel URL WMS-nya di tab Data.</p></section>
+ <section><h2>Bahaya gunung api &amp; riwayat kejadian</h2>
+  <label class="sw"><input type="checkbox" data-l="volr"><span class="ln" style="border-color:#ea580c;border-top-style:dashed"></span>Radius bahaya gunung api (ilustratif)</label>
+  <label class="sw"><input type="checkbox" data-l="evt" checked><span class="ln" style="border-color:#7c3aed"></span>Riwayat bencana (gempa, tsunami, letusan, banjir, longsor)</label>
+  <label class="sw"><input type="checkbox" id="qon2"><span class="ln" style="border-color:#ef4444"></span>Episenter gempa (USGS)</label>
+  <div style="margin-top:6px"><div class="lgd"><i style="background:#dc2626"></i>Gempa</div><div class="lgd"><i style="background:#0284c7"></i>Tsunami</div><div class="lgd"><i style="background:#ea580c"></i>Letusan</div><div class="lgd"><i style="background:#2563eb"></i>Banjir</div><div class="lgd"><i style="background:#92400e"></i>Longsor</div></div>
+  <p class="note">Titik kejadian bersifat perkiraan lokasi; angka korban dibulatkan dari sumber publik.</p></section>
+ <section><h2>Sesar &amp; subduksi</h2><label class="sw"><input type="checkbox" data-l="flt" checked><span class="ln" style="border-color:#dc2626"></span>Sesar &amp; megathrust (skematik)</label></section>
+</div>
+
+<div class="pane" id="p-mdn">
+ <section><h2>Mode analisis medan (DEM)</h2><div id="anal"></div>
+  <div class="sub"><span>Opasitas analisis</span></div><input type="range" id="anaop" min="10" max="100" value="70">
+  <div id="anaLeg" style="margin-top:8px"></div>
+  <p class="note">Dihitung di browser dari ubin DEM Terrarium (resolusi ≈ 9–150 m tergantung zoom). Lereng dalam %, kelas mengikuti klasifikasi lereng umum (datar 0–8%, landai 8–15%, agak curam 15–25%, curam 25–45%, sangat curam &gt;45%).</p></section>
+ <section><h2>Hidrologi — delineasi DAS</h2>
+  <div class="row"><button class="btn" id="dasb">Delineasi DAS (klik outlet)</button><button class="btn" id="dasx">Hapus DAS</button></div>
+  <div class="sub"><span>Ambang jaringan sungai (sel hulu)</span></div>
+  <select id="thr"><option value="100">100 sel (rapat)</option><option value="250" selected>250 sel</option><option value="600">600 sel</option><option value="1500">1500 sel (jarang)</option></select>
+  <p class="note">Klik dekat sungai: titik disnap ke aliran terakumulasi tertinggi (±600 m), lalu DEM (zoom 11, ≈ 75 m/sel; jendela ±48 km) diisi depresinya (priority-flood), arah aliran D8, akumulasi aliran, dan DAS dihitung. Hasil: luas, keliling, panjang sungai utama, faktor bentuk, kerapatan drainase, dll. Jika DAS menyentuh tepi jendela, hasil terpotong.</p></section>
+</div>
+
+<div class="pane" id="p-alt">
+ <section><h2>Alat ukur &amp; analisis</h2>
+  <div class="row"><button class="btn" data-tool="dist">Jarak</button><button class="btn" data-tool="area">Luas</button><button class="btn" data-tool="rad">Radius</button><button class="btn" data-tool="pt">Titik/UTM</button><button class="btn" data-tool="prof">Profil elevasi</button><button class="btn" data-tool="das">DAS</button></div>
+  <p class="note">Jarak/Luas/Profil: klik titik-titik, klik ganda atau “Selesai” untuk mengakhiri. Radius: klik pusat lalu tepi. Titik: koordinat desimal/DMS/UTM + elevasi, lereng &amp; arah hadap.</p>
+  <div class="sub"><span>Ke koordinat (lintang, bujur)</span></div>
+  <div class="row"><input type="text" id="goto" placeholder="-6.2088, 106.8456" style="flex:1"><button class="btn" id="gobtn">Cari</button></div></section>
+ <section><h2>Grid &amp; skala</h2>
+  <div class="sub"><span>Sistem grid</span></div>
+  <select id="gm"><option value="off">Tanpa grid</option><option value="geo">Grafis lintang–bujur (derajat)</option><option value="utm">Grid UTM (meter)</option></select>
+  <div class="sub"><span>Interval grid (derajat — mode grafis)</span></div>
+  <select id="gs"><option value="auto">Otomatis (menurut zoom)</option><option value="2">2°</option><option value="1">1°</option><option value="0.5">0,5°</option><option value="0.25">0,25°</option><option value="0.1">0,1°</option><option value="0.05">0,05°</option><option value="0.01">0,01°</option></select>
+  <label class="sw" style="margin-top:6px"><input type="checkbox" id="imp"><span class="ln" style="border-color:transparent">⇄</span>Skala ganda (metrik + imperial)</label>
+  <p class="note">Skala numerik (1 : n) dan koordinat kursor tampil di bilah bawah. Grid UTM memakai zona di tengah peta (WGS84, 48S untuk Jakarta).</p></section>
+</div>
+
+<div class="pane" id="p-dat">
+ <section><h2>Ekspor</h2><div class="row"><button class="btn" id="kml" disabled>KML</button><button class="btn" id="gj" disabled>GeoJSON</button><button class="btn" id="csv" disabled>CSV atribut</button><button class="btn" id="png">Simpan PNG</button><button class="btn" id="re" disabled>Muat ulang data</button></div></section>
+ <section><h2>Unggah GeoJSON</h2><input type="file" id="upf" accept=".geojson,.json,application/geo+json,application/json"><div class="row" style="margin-top:6px"><button class="btn" id="upx">Hapus unggahan</button></div></section>
+ <section><h2>Tambah layer WMS / XYZ</h2>
+  <input type="text" id="wmsn" placeholder="Nama layer" style="margin-bottom:6px">
+  <input type="text" id="wmsu" placeholder="https://…/{z}/{x}/{y}.png  atau  …GetMap&…&bbox={bbox-epsg-3857}&…">
+  <div class="row" style="margin-top:6px"><button class="btn" id="wmsa">Tambahkan</button><button class="btn" id="wmsx">Hapus semua</button></div>
+  <div id="cusl"></div>
+  <p class="note">Contoh: tempel URL WMS peta geologi, KRB (InaRISK), tutupan lahan, dll. WMS harus mengizinkan EPSG:3857 &amp; CORS ringan; untuk GetMap gunakan placeholder {bbox-epsg-3857}.</p></section>
+ <section><h2>Lainnya</h2><div class="row"><a class="btn" href="https://www.google.com/maps/d/" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">Google My Maps</a></div></section>
+</div>
+
+<div id="status">Menyiapkan…</div>
+<p class="note">Kota Karawang belum merupakan batas kota resmi pada data sumber; area usulan memakai Kecamatan Karawang Barat dan Karawang Timur, dikeluarkan dari Kabupaten Karawang.</p>
+<p class="note">Kep. Seribu: data BIG hanya berisi poligon pulau, jadi garis putus-putus biru adalah perkiraan selubung (±2,5 km dari pulau terluar), bukan batas laut resmi.</p>
+<p class="note">Batas luar adalah hasil penggabungan geometri wilayah terpilih, bukan batas provinsi resmi. Data kecamatan: BIG edisi 27 Desember 2022 (disederhanakan ±15 m). DEM: Mapzen/AWS Terrarium. Gempa: USGS. Citra: NASA GIBS, EOX Sentinel-2 cloudless. Peta dasar © CARTO, Esri, OpenStreetMap, OpenTopoMap.</p>
+</div></aside>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const SVC='https://geoservices.big.go.id/gis/rest/services/BAPANAS/Batas_Administrasi/MapServer/1/query';
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+const X=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+const fc=x=>({type:'FeatureCollection',features:x});
+const fmt=(v,d=2)=>Number(v).toLocaleString('id-ID',{maximumFractionDigits:d});
+const R=6371.0088,rad=Math.PI/180;
+/* ===== Daftar wilayah ===== */
+const partial={
+ lebak:new Set(['maja','rangkasbitung','cibadak','warunggunung','kalanganyar','curugbitung','sajira','cipanas','lebakgedong','cilograng','cibeber']),
+ cianjur:new Set(['cianjur','karangtengah','mande','cikalongkulon','sukaresmi','pacet','cipanas','cugenang','sukaluyu','ciranjang','cilaku','warungkondang','gekbrong','haurwangi']),
+ serang:new Set(['cikande','kopo','jawilan','bandung','pamarayan','tunjungteja','tanara','tirtayasa']),
+ bandungbarat:new Set(['cipeundeuy','cipatat','cikalongwetan'])};
+const parents=['Jakarta Pusat','Jakarta Barat','Jakarta Timur','Jakarta Selatan','Jakarta Utara','Kepulauan Seribu','Depok','Bogor','Bekasi','Tangerang','Sukabumi','Karawang','Purwakarta','Lebak','Cianjur','Serang','Bandung Barat'];
+const SB=a=>/kepulauan\s*seribu/i.test((a.WADMKK||'')+(a.WADMKC||''));
+function selectType(a){
+ const p=norm(a.WADMKK),k=norm(a.WADMKC);if(SB(a))return 'full';
+ if(['jakartapusat','jakartabarat','jakartatimur','jakartaselatan','jakartautara','kepulauanseribu','depok','bogor','bekasi','tangerang','purwakarta'].some(n=>p.includes(n)))return 'full';
+ if(p.includes('sukabumi'))return 'full';
+ if(p.includes('karawang'))return (k==='karawangbarat'||k==='karawangtimur')?'karawang-city':'full';
+ for(const [key,set] of Object.entries(partial))if(p.includes(key)&&set.has(k))return 'partial';
+ return null}
+/* ===== Peta dasar ===== */
+const ras=(t,a,mz=18)=>({version:8,glyphs:'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',sources:{b:{type:'raster',tiles:[t],tileSize:256,maxzoom:mz,attribution:a}},layers:[{id:'b',type:'raster',source:'b'}]});
+const CT='https://basemaps.cartocdn.com/gl/';
+const EOX=y=>`https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-${y}_3857/default/g/{z}/{y}/{x}.jpg`;
+const BASE={
+ terang:{n:'Terang',s:CT+'positron-gl-style/style.json',dark:0},
+ jalan:{n:'Jalan',s:CT+'voyager-gl-style/style.json',dark:0},
+ gelap:{n:'Gelap',s:CT+'dark-matter-gl-style/style.json',dark:1},
+ satelit:{n:'Satelit',s:ras('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}','Esri, Maxar'),dark:1},
+ s2:{n:'Sentinel-2 2020',s:ras(EOX(2020),'Sentinel-2 cloudless © EOX (Copernicus Sentinel data 2020)',14),dark:1},
+ topo:{n:'Topografi Esri',s:ras('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}','Esri'),dark:0},
+ otm:{n:'OpenTopoMap',s:ras('https://tile.opentopomap.org/{z}/{x}/{y}.png','© OpenTopoMap (CC-BY-SA), © OpenStreetMap',17),dark:0},
+ osm:{n:'OSM',s:ras('https://tile.openstreetmap.org/{z}/{x}/{y}.png','© OpenStreetMap contributors',19),dark:0}};
+/* ===== Titik geografis penting ===== */
+const POI=[['Jakarta Pusat (ibu kota usulan)',106.8272,-6.1754,'ibukota'],['Bogor',106.8166,-6.595,'kota'],['Depok',106.8186,-6.4025,'kota'],['Bekasi',106.9756,-6.2383,'kota'],['Tangerang',106.6319,-6.1783,'kota'],['Tangerang Selatan',106.7179,-6.2886,'kota'],['Karawang',107.302,-6.3015,'kota'],['Purwakarta',107.4431,-6.5569,'kota'],['Sukabumi',106.93,-6.9277,'kota'],['Cianjur',107.142,-6.82,'kota'],['Pulau Pramuka (ibu kota Kep. Seribu)',106.6128,-5.7436,'kota'],['Rangkasbitung',106.25,-6.36,'kota'],['Pelabuhanratu',106.553,-6.9847,'kota'],
+ ['Gn. Gede (2.958 m)',106.9808,-6.7872,'gunung'],['Gn. Pangrango (3.019 m)',106.9606,-6.7686,'gunung'],['Gn. Salak (2.211 m)',106.7333,-6.7167,'gunung'],
+ ['Bandara Soekarno–Hatta',106.6559,-6.1256,'fas'],['Bandara Halim P.',106.8908,-6.2665,'fas'],['Pelabuhan Tanjung Priok',106.881,-6.104,'fas'],['Waduk Jatiluhur',107.3667,-6.5167,'air'],['Waduk Cirata',107.28,-6.73,'air'],['Teluk Banten',106.1,-5.98,'air'],['TN Gunung Gede Pangrango',106.97,-6.8,'konservasi'],['TN Halimun Salak',106.52,-6.72,'konservasi'],['Geopark Ciletuh',106.55,-7.2,'konservasi'],['Teluk Jakarta',106.8,-5.98,'air']];
+const poiGeo=fc(POI.map(([n,x,y,k])=>({type:'Feature',properties:{n,k},geometry:{type:'Point',coordinates:[x,y]}})));
+/* ===== Data geologi & kebencanaan (skematik / indikatif) ===== */
+const FAULT=[
+ {n:'Sesar Lembang',t:'geser',c:[[107.50,-6.86],[107.58,-6.85],[107.65,-6.83],[107.72,-6.82],[107.80,-6.83],[107.88,-6.84]],d:'Sesar geser mengiri (sinistral), ±29 km, di utara Cekungan Bandung. Dikaji berpotensi gempa M≈6,5–7.'},
+ {n:'Sesar Cimandiri',t:'geser',c:[[106.52,-7.00],[106.62,-6.98],[106.75,-6.94],[106.88,-6.90],[107.00,-6.88],[107.12,-6.86],[107.25,-6.85],[107.37,-6.84]],d:'Sesar aktif ±100 km dari Pelabuhanratu ke Padalarang (komponen geser/naik); dikaitkan dengan sejumlah gempa merusak di Sukabumi–Cianjur.'},
+ {n:'Sesar Baribis',t:'naik',c:[[107.40,-6.55],[107.65,-6.62],[107.85,-6.68],[108.10,-6.75],[108.30,-6.80]],d:'Sesar naik (thrust) Purwakarta–Subang–Majalengka–Cirebon. Perpanjangan ke barat (Bekasi–Jakarta) masih diperdebatkan.'},
+ {n:'Megathrust Selatan Jawa (palung Jawa)',t:'subduksi',c:[[104.0,-8.6],[105.0,-9.5],[106.5,-10.0],[108.0,-10.4]],d:'Zona subduksi Lempeng Indo-Australia di bawah Jawa (±6–7 cm/tahun). Skenario terbesar kajian mencapai M≈8,7–8,9. Posisi skematik ±30 km.'}];
+const faultGeo=fc(FAULT.map(f=>({type:'Feature',properties:{n:f.n,t:f.t,d:f.d},geometry:{type:'LineString',coordinates:f.c}})));
+const VOL=[['Anak Krakatau',105.423,-6.102,null,'Gunung api aktif di Selat Sunda; longsoran tubuhnya memicu tsunami 22 Des 2018.'],['Gn. Salak',106.7333,-6.7167,2211,'Stratovolkano di barat Bogor.'],['Gn. Gede',106.9808,-6.7872,2958,'Kompleks Gede–Pangrango; salah satu gunung api aktif terdekat dari Jakarta.'],['Gn. Pangrango',106.9606,-6.7686,3019,'Stratovolkano tidak aktif/istirahat di kompleks Gede–Pangrango.'],['Tangkuban Parahu',107.6,-6.76,2084,'Gunung api aktif di utara Bandung.'],['Gn. Tampomas',107.95,-6.77,1684,'Stratovolkano di Sumedang.'],['Gn. Guntur',107.84,-7.14,2249,'Kompleks Garut.'],['Gn. Papandayan',107.73,-7.32,2665,'Gunung api aktif di Garut.'],['Gn. Galunggung',108.057,-7.256,2168,'Gunung api aktif; letusan 1982.'],['Gn. Patuha',107.4,-7.166,2434,'Kawah Putih, Bandung Selatan.'],['Gn. Ciremai',108.4,-6.892,3078,'Gunung api tertinggi di Jawa Barat.']];
+const volGeo=fc(VOL.map(([n,x,y,e,d])=>({type:'Feature',properties:{n:n+(e?' ('+e.toLocaleString('id-ID')+' m)':''),nm:n,d},geometry:{type:'Point',coordinates:[x,y]}})));
+const EVT=[['Letusan Krakatau 1883',105.423,-6.102,'letusan','27 Agustus 1883. Letusan dahsyat dan tsunami; ±36.000 korban jiwa.'],['Tsunami Selat Sunda 2018',105.83,-6.31,'tsunami','22 Desember 2018. Longsoran Anak Krakatau memicu tsunami di pesisir Banten–Lampung; ±430 korban jiwa.'],['Gempa Cianjur 2022',107.05,-6.84,'gempa','21 November 2022. M≈5,6 (BMKG), dangkal; >600 korban jiwa.'],['Banjir Jabodetabek 2020',106.83,-6.2,'banjir','1 Januari 2020. Hujan ekstrem (>300 mm/hari di Halim); banjir luas di Jabodetabek.'],['Banjir bandang & longsor Sukajaya 2020',106.5,-6.55,'longsor','1 Januari 2020. Banjir bandang dan longsor di Bogor barat–Lebak.'],['Banjir besar Jakarta 2007',106.82,-6.2,'banjir','Februari 2007. Banjir besar melanda sebagian besar Jakarta.']];
+const evtGeo=fc(EVT.map(([n,x,y,k,d])=>({type:'Feature',properties:{n,k,d},geometry:{type:'Point',coordinates:[x,y]}})));
+/* ===== Geometri ===== */
+const sa=r=>{let s=0;for(let i=0;i<r.length-1;i++)s+=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];return s/2};
+const ringKm2=r=>{let s=0;for(let i=0;i<r.length-1;i++)s+=(r[i+1][0]-r[i][0])*rad*(2+Math.sin(r[i][1]*rad)+Math.sin(r[i+1][1]*rad));return Math.abs(s*R*R/2)};
+function pip(pt,r){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++)if((r[i][1]>pt[1])!==(r[j][1]>pt[1])&&pt[0]<(r[j][0]-r[i][0])*(pt[1]-r[i][1])/(r[j][1]-r[i][1])+r[i][0])c=!c;return c}
+function toPolys(rings){const o=[],h=[];for(const r of rings)(sa(r)<=0?o.push([r]):h.push(r));for(const x of h){const t=o.find(p=>pip(x[0],p[0]))||o[0];if(t)t.push(x)}return o}
+const lines=(mp,min=5e-5)=>{const L=[];for(const p of mp)p.forEach((r,i)=>{if(!i||Math.abs(sa(r))>min)L.push(r)});return L};
+function bb(c,b=[180,90,-180,-90]){(function w(a){if(typeof a[0]==='number'){b[0]=Math.min(b[0],a[0]);b[1]=Math.min(b[1],a[1]);b[2]=Math.max(b[2],a[0]);b[3]=Math.max(b[3],a[1])}else a.forEach(w)})(c);return b}
+const mergeB=(a,b)=>[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[2],b[2]),Math.max(a[3],b[3])];
+function cen(r){let a=0,x=0,y=0;for(let i=0;i<r.length-1;i++){const k=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1];a+=k;x+=(r[i][0]+r[i+1][0])*k;y+=(r[i][1]+r[i+1][1])*k}return a?[x/(3*a),y/(3*a)]:r[0]}
+const hav=(a,b)=>{const x=Math.sin((b[1]-a[1])*rad/2)**2+Math.cos(a[1]*rad)*Math.cos(b[1]*rad)*Math.sin((b[0]-a[0])*rad/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
+const brg=(a,b)=>{const p1=a[1]*rad,p2=b[1]*rad,dl=(b[0]-a[0])*rad;return (Math.atan2(Math.sin(dl)*Math.cos(p2),Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl))/rad+360)%360};
+const dest=(p,b,d)=>{const dl=d/R,p1=p[1]*rad,l1=p[0]*rad,t=b*rad,p2=Math.asin(Math.sin(p1)*Math.cos(dl)+Math.cos(p1)*Math.sin(dl)*Math.cos(t)),l2=l1+Math.atan2(Math.sin(t)*Math.sin(dl)*Math.cos(p1),Math.cos(dl)-Math.sin(p1)*Math.sin(p2));return [((l2/rad+540)%360)-180,p2/rad]};
+const circle=(c,r,n=72)=>{const o=[];for(let i=0;i<=n;i++)o.push(dest(c,i*360/n,r));return o};
+const CP=['Utara','Timur Laut','Timur','Tenggara','Selatan','Barat Daya','Barat','Barat Laut'],cpn=b=>CP[Math.round(b/45)%8];
+const dms=(v,p,n)=>{const h=v>=0?p:n,a=Math.abs(v),d=Math.floor(a),m=Math.floor((a-d)*60),s=((a-d)*60-m)*60;return `${d}°${String(m).padStart(2,'0')}′${s.toFixed(2).padStart(5,'0')}″ ${h}`};
+/* UTM WGS84 */
+const WA=6378137,WF=1/298.257223563,WE2=WF*(2-WF),WEP=WE2/(1-WE2),K0=.9996;
+function utm(lat,lon,zone){zone=zone||Math.floor((lon+180)/6)+1;const l0=((zone-1)*6-180+3)*rad,f=lat*rad,l=lon*rad,e2=WE2,N=WA/Math.sqrt(1-e2*Math.sin(f)**2),T=Math.tan(f)**2,C=WEP*Math.cos(f)**2,A=Math.cos(f)*(l-l0);
+ const M=WA*((1-e2/4-3*e2*e2/64-5*e2**3/256)*f-(3*e2/8+3*e2*e2/32+45*e2**3/1024)*Math.sin(2*f)+(15*e2*e2/256+45*e2**3/1024)*Math.sin(4*f)-(35*e2**3/3072)*Math.sin(6*f));
+ const E=K0*N*(A+(1-T+C)*A**3/6+(5-18*T+T*T+72*C-58*WEP)*A**5/120)+5e5;
+ let Nn=K0*(M+N*Math.tan(f)*(A*A/2+(5-T+9*C+4*C*C)*A**4/24+(61-58*T+T*T+600*C-330*WEP)*A**6/720));if(lat<0)Nn+=1e7;
+ return{zone,band:'CDEFGHJKLMNPQRSTUVWX'[Math.max(0,Math.min(19,Math.floor((lat+80)/8)))],E,N:Nn}}
+function iutm(E,N,zone,south){const x=E-5e5,y=south?N-1e7:N,l0=((zone-1)*6-180+3)*rad,e2=WE2,e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2)),M=y/K0,mu=M/(WA*(1-e2/4-3*e2*e2/64-5*e2**3/256));
+ const p1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1*e1/16-55*e1**4/32)*Math.sin(4*mu)+(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu);
+ const C1=WEP*Math.cos(p1)**2,T1=Math.tan(p1)**2,N1=WA/Math.sqrt(1-e2*Math.sin(p1)**2),R1=WA*(1-e2)/Math.pow(1-e2*Math.sin(p1)**2,1.5),D=x/(N1*K0);
+ const lat=p1-(N1*Math.tan(p1)/R1)*(D*D/2-(5+3*T1+10*C1-4*C1*C1-9*WEP)*D**4/24+(61+90*T1+298*C1+45*T1*T1-252*WEP-3*C1*C1)*D**6/720);
+ const lon=l0+(D-(1+2*T1+C1)*D**3/6+(5-2*C1+28*T1-3*C1*C1+8*WEP+24*T1*T1)*D**5/120)/Math.cos(p1);return[lon/rad,lat/rad]}
+/* ===== Worker union ===== */
+const WSRC="importScripts('https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js');onmessage=function(e){var d=e.data;try{postMessage({id:d.id,u:polygonClipping.union.apply(null,d.geoms)})}catch(x){postMessage({id:d.id,u:null})}}";
+const NW=Math.max(1,Math.min(3,(navigator.hardwareConcurrency||2)-1));let Ws=null,wid=0,wdead=false,rr=0;const pend=new Map();
+function pool(){if(Ws||wdead)return;try{const u=URL.createObjectURL(new Blob([WSRC],{type:'text/javascript'}));Ws=Array.from({length:NW},()=>{const w=new Worker(u);w.onmessage=e=>{const f=pend.get(e.data.id);pend.delete(e.data.id);f&&f(e.data.u)};w.onerror=()=>{wdead=true;pend.forEach(f=>f(null));pend.clear()};return w})}catch(_){wdead=true}}
+function union(geoms){return new Promise(ok=>{pool();if(wdead||!Ws)return ok(null);const id=++wid;pend.set(id,ok);Ws[rr++%Ws.length].postMessage({id,geoms})})}
+pool();
+const SBF=[[106.42,-5.55],[106.62,-5.5],[106.7,-5.9],[106.76,-6.05],[106.62,-6.0],[106.44,-5.8],[106.42,-5.55]];
+function hull(P){P=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const c=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),h=[];for(const p of P){while(h.length>1&&c(h[h.length-2],h[h.length-1],p)<=0)h.pop();h.push(p)}const n=h.length+1;for(let i=P.length-2;i>=0;i--){const p=P[i];while(h.length>=n&&c(h[h.length-2],h[h.length-1],p)<=0)h.pop();h.push(p)}return h}
+function envelope(d){const P=[];d.feats.forEach(f=>{if(!f.properties.sb)return;f.geometry.coordinates.forEach(p=>{const b=bb(p),cx=(b[0]+b[2])/2,cy=(b[1]+b[3])/2,r=Math.max(b[2]-b[0],b[3]-b[1])/2+.022;for(let i=0;i<12;i++){const a=i*Math.PI/6;P.push([cx+r*Math.cos(a),cy+r*Math.sin(a)])}})});return P.length>2?hull(P):SBF}
+/* ===== Ambil & olah data BIG ===== */
+async function q(p){const r=await fetch(SVC,{method:'POST',body:new URLSearchParams({f:'json',...p})});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();if(j.error)throw new Error(j.error.message||'Kesalahan layanan');return j}
+function setBar(p,t){$('#bar').style.cssText=`width:${p}%;opacity:${p>=100?0:1}`;if(t)$('#status').textContent=t}
+const msg=t=>$('#status').textContent=t;
+let pdn=0;
+async function grab(where,extra){
+ const {count}=await q({where,returnCountOnly:true});if(!count)return[];
+ const N=60,pages=Math.ceil(count/N);
+ return Promise.all(Array.from({length:pages},(_,i)=>q({where,outFields:'WADMKC,WADMKK,WADMPR',returnGeometry:true,outSR:4326,orderByFields:'OBJECTID ASC',resultOffset:i*N,resultRecordCount:N,...extra}).then(r=>{setBar(10+50*(1-Math.exp(-++pdn/10)),'Mengunduh batas… '+pdn+' paket');return r})))}
+async function build(){
+ setBar(5,'Menghubungi layanan BIG…');pdn=0;
+ const w=l=>l.map(n=>`UPPER(WADMKK) LIKE '%${n.toUpperCase()}%'`).join(' OR ');
+ const [a,b]=await Promise.all([grab(w(parents.filter(n=>n!=='Kepulauan Seribu')),{geometryPrecision:4,maxAllowableOffset:0.0002}),grab("UPPER(WADMKK) LIKE '%KEPULAUAN SERIBU%' OR UPPER(WADMKC) LIKE '%KEPULAUAN SERIBU%'",{geometryPrecision:5,maxAllowableOffset:0.00003})]);
+ const feats=[];let id=0;
+ for(const r of [...a,...b])for(const f of r.features||[]){
+  const a=f.attributes,t=selectType(a);if(!t||!f.geometry||!f.geometry.rings)continue;
+  const polys=toPolys(f.geometry.rings.filter(x=>x.length>=4)),pr=norm(a.WADMPR);
+  let km2=0;for(const p of polys)km2+=ringKm2(p[0])-p.slice(1).reduce((s,h)=>s+ringKm2(h),0);
+  feats.push({type:'Feature',id:id++,properties:{kec:a.WADMKC||'',kab:SB(a)?'Kepulauan Seribu':(a.WADMKK||''),pr:a.WADMPR||'',prov:pr.includes('jakarta')?'DKI':pr.includes('banten')?'BANTEN':'JABAR',t,grp:t==='karawang-city'?'Kota Karawang (usulan)':(SB(a)?'Kepulauan Seribu':a.WADMKK),sb:SB(a)?1:0,km2:Math.round(km2*10)/10},geometry:{type:'MultiPolygon',coordinates:polys}})}
+ if(!feats.length)throw new Error('Data termuat, tetapi nama kabupaten/kota tidak cocok');
+ const miss=[];
+ for(const [k,set] of Object.entries(partial)){const have=new Set(feats.filter(x=>norm(x.properties.kab).includes(k)).map(x=>norm(x.properties.kec)));const m=[...set].filter(s=>!have.has(s));if(m.length)miss.push(k+': '+m.join(', '))}
+ return {feats,kab:[],out:null,miss,ts:Date.now()}}
+async function dissolve(d){
+ const G=new Map();for(const f of d.feats){if(f.properties.sb)continue;const g=f.properties.grp;if(!G.has(g))G.set(g,[]);G.get(g).push(f.geometry.coordinates)}
+ const U=new Map();let n=0;
+ await Promise.all([...G].sort((a,b)=>b[1].flat(3).length-a[1].flat(3).length).map(async([g,geoms])=>{U.set(g,await union(geoms));setBar(70+28*++n/G.size)}));
+ const kab=[],ok=[];
+ for(const [g,geoms] of G){const u=U.get(g);if(u)ok.push(u);kab.push({type:'Feature',properties:{name:g,krw:g.startsWith('Kota Karawang')?1:0},geometry:{type:'MultiLineString',coordinates:u?lines(u):lines(geoms.flat(),0)}})}
+ d.kab=kab;show();
+ const ou=ok.length?await union(ok):null,ev=d.sb.geometry.coordinates[0];
+ d.out={type:'Feature',properties:{name:'Batas luar Provinsi Megapolitan Jakarta (usulan)'},geometry:{type:'MultiLineString',coordinates:(ou?lines(ou):[]).concat([ev])}}}
+const idb=(m,v,k)=>new Promise((ok,no)=>{const r=indexedDB.open('megajkt',1);r.onupgradeneeded=()=>r.result.createObjectStore('s');r.onsuccess=()=>{const s=r.result.transaction('s',m==='get'?'readonly':'readwrite').objectStore('s'),x=m==='get'?s.get(k):s.put(v,k);x.onsuccess=()=>ok(x.result);x.onerror=()=>no(x.error)};r.onerror=()=>no(r.error)});
+
+/* ================= DEM: ubin, analisis, kontur ================= */
+const mkCanvas=(w,h)=>typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(w,h):Object.assign(document.createElement('canvas'),{width:w,height:h});
+const toBuf=c=>c.convertToBlob?c.convertToBlob().then(b=>b.arrayBuffer()):new Promise((ok,no)=>c.toBlob(b=>b?b.arrayBuffer().then(ok):no(new Error('png')))); 
+const TC=new Map();
+function getTile(z,x,y){const k=z+'/'+x+'/'+y;let p=TC.get(k);if(p)return p;if(TC.size>320)TC.delete(TC.keys().next().value);
+ p=(async()=>{const r=await fetch(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${k}.png`);if(!r.ok)throw new Error('DEM '+r.status);
+  const b=await createImageBitmap(await r.blob(),{premultiplyAlpha:'none',colorSpaceConversion:'none'});const c=mkCanvas(256,256),g=c.getContext('2d',{willReadFrequently:true});g.drawImage(b,0,0);
+  const d=g.getImageData(0,0,256,256).data,o=new Float32Array(65536);for(let i=0;i<65536;i++)o[i]=d[i*4]*256+d[i*4+1]+d[i*4+2]/256-32768;return o})();
+ p.catch(()=>TC.delete(k));TC.set(k,p);return p}
+const HYP=[[-8000,5,10,50],[-4000,15,30,90],[-1000,40,80,160],[-100,100,160,220],[-1,150,210,240],[0,168,221,181],[25,120,198,135],[100,190,220,120],[250,240,230,110],[500,235,190,90],[1000,205,140,70],[1500,170,100,60],[2000,140,80,60],[2500,120,70,70],[3000,245,245,245]];
+const RGH=[[0,255,255,204],[5,199,233,180],[15,127,205,187],[30,44,127,184],[60,37,52,148]];
+function rmp(T,v,o){if(v<=T[0][0]){o[0]=T[0][1];o[1]=T[0][2];o[2]=T[0][3];return}let i=0;while(i<T.length-1&&v>T[i+1][0])i++;if(i>=T.length-1){const c=T[T.length-1];o[0]=c[1];o[1]=c[2];o[2]=c[3];return}const a=T[i],b=T[i+1],t=(v-a[0])/(b[0]-a[0]);o[0]=a[1]+(b[1]-a[1])*t;o[1]=a[2]+(b[2]-a[2])*t;o[2]=a[3]+(b[3]-a[3])*t}
+function hsl(h,s,l){h/=360;const f=n=>{const k=(n+h*12)%12,a=s*Math.min(l,1-l);return l-a*Math.max(-1,Math.min(k-3,9-k,1))};return[f(0)*255,f(8)*255,f(4)*255]}
+const SLC=[[8,26,150,65],[15,166,217,106],[25,255,255,191],[45,253,174,97],[1e9,215,25,28]];
+function renderTile(mode,z,ty,E){
+ const W=256,lat=Math.atan(Math.sinh(Math.PI*(1-2*(ty+.5)/2**z)))/rad,cs=156543.03392*Math.cos(lat*rad)/2**z;
+ const c=mkCanvas(W,W),g=c.getContext('2d'),im=g.createImageData(W,W),D=im.data,col=[0,0,0];
+ const put=(o,r,gg,b,a)=>{D[o]=r;D[o+1]=gg;D[o+2]=b;D[o+3]=a};
+ if(mode==='cnt'){
+  const iv=z<=8?500:z===9?250:z===10?100:z===11?50:z===12?25:z===13?10:5;
+  for(let y=0;y<W;y++)for(let x=0;x<W;x++){const i=y*W+x,e=E[i];const er=x<W-1?E[i+1]:e,ed=y<W-1?E[i+W]:e;if(e<=0&&er<=0&&ed<=0)continue;
+   const l=Math.floor(e/iv),lr=Math.floor(er/iv),ld=Math.floor(ed/iv);if(l===lr&&l===ld)continue;const L=Math.max(l,lr,ld);if(L<=0)continue;
+   if(L%5===0){put(i*4,110,45,10,255);if(x<W-1)put((i+1)*4,110,45,10,200)}else put(i*4,170,80,12,200)}
+ }else for(let y=0;y<W;y++){const ya=y?y-1:0,yb=y<W-1?y+1:y,sy=(yb-ya)*cs;
+  for(let x=0;x<W;x++){const i=y*W+x,e=E[i],o=i*4;
+   if(mode==='hyp'){rmp(HYP,e,col);put(o,col[0],col[1],col[2],255);continue}
+   if(e<=0)continue;
+   if(mode==='flo'){if(e<=2)put(o,185,28,28,205);else if(e<=5)put(o,239,68,68,195);else if(e<=10)put(o,251,146,60,185);else if(e<=25)put(o,253,224,71,150);continue}
+   const xa=x?x-1:0,xb=x<W-1?x+1:x,sx=(xb-xa)*cs,r0=ya*W,r1=y*W,r2=yb*W;
+   if(mode==='rgh'){let mn=1e9,mx=-1e9;for(let a=ya;a<=yb;a++)for(let b=xa;b<=xb;b++){const v=E[a*W+b];if(v<mn)mn=v;if(v>mx)mx=v}rmp(RGH,mx-mn,col);put(o,col[0],col[1],col[2],190);continue}
+   const gx=((E[r0+xb]-E[r0+xa])+2*(E[r1+xb]-E[r1+xa])+(E[r2+xb]-E[r2+xa]))/(4*sx),gy=((E[r2+xa]+2*E[r2+x]+E[r2+xb])-(E[r0+xa]+2*E[r0+x]+E[r0+xb]))/(4*sy),sl=Math.hypot(gx,gy),pc=sl*100;
+   if(mode==='slp'){let k=0;while(pc>SLC[k][0])k++;put(o,SLC[k][1],SLC[k][2],SLC[k][3],190)}
+   else if(mode==='lsr'){if(pc<15)continue;if(pc<30)put(o,250,204,21,175);else if(pc<45)put(o,249,115,22,185);else if(pc<70)put(o,220,38,38,195);else put(o,127,29,29,205)}
+   else if(mode==='asp'){if(pc<3){put(o,200,200,200,90);continue}const b=(Math.atan2(-gx,gy)/rad+360)%360,h=hsl(b,.75,.55);put(o,h[0],h[1],h[2],205)}
+   else if(mode==='shd'){const S=Math.atan(sl),A=Math.atan2(-gx,gy),Z=45*rad,az=315*rad,sh=Math.max(0,Math.cos(Z)*Math.cos(S)+Math.sin(Z)*Math.sin(S)*Math.cos(az-A))*255;put(o,sh,sh,sh,255)}
+  }}
+ g.putImageData(im,0,0);return c}
+let protoOK=false;
+try{maplibregl.addProtocol('rdem',async p=>{const m=/^rdem:\/\/(\w+)\/(\d+)\/(\d+)\/(\d+)/.exec(p.url);if(!m)throw new Error('url');const z=+m[2],x=+m[3],y=+m[4],E=await getTile(z,x,y);return{data:await toBuf(renderTile(m[1],z,y,E))}});protoOK=true}catch(e){console.warn('protokol DEM gagal',e)}
+async function elevAt(lon,lat,z=12){const n=2**z,fx=(lon+180)/360*n,s=Math.sin(lat*rad),fy=(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n,tx=Math.floor(fx),ty=Math.floor(fy),E=await getTile(z,tx,ty);
+ const px=(fx-tx)*256-.5,py=(fy-ty)*256-.5,x0=Math.max(0,Math.min(254,Math.floor(px))),y0=Math.max(0,Math.min(254,Math.floor(py))),dx=Math.max(0,Math.min(1,px-x0)),dy=Math.max(0,Math.min(1,py-y0));
+ const a=E[y0*256+x0],b=E[y0*256+x0+1],c=E[(y0+1)*256+x0],d=E[(y0+1)*256+x0+1];return (a*(1-dx)+b*dx)*(1-dy)+(c*(1-dx)+d*dx)*dy}
+async function slopeAt(lon,lat){const d=45,dl=d/(111320*Math.cos(lat*rad)),dp=d/110540,[e,w,n,s]=await Promise.all([elevAt(lon+dl,lat),elevAt(lon-dl,lat),elevAt(lon,lat+dp),elevAt(lon,lat-dp)]);
+ const gx=(e-w)/(2*d),gy=(n-s)/(2*d),sl=Math.hypot(gx,gy);return{pct:sl*100,deg:Math.atan(sl)/rad,asp:sl<.03?null:(Math.atan2(-gx,-gy)/rad+360)%360}}
+
+/* ================= DAS: inti algoritma ================= */
+/*DAS-CORE*/
+function dasCore(E,W,cs,px,py,thr){
+ const N=W*W,F=new Float64Array(E),P=new Int32Array(N).fill(-2),O=new Int32Array(N),hp=new Int32Array(N);let no=0,hs=0;
+ const push=i=>{let c=hs++;const v=F[i];while(c>0){const p=(c-1)>>1;if(F[hp[p]]<=v)break;hp[c]=hp[p];c=p}hp[c]=i};
+ const pop=()=>{const t=hp[0],l=hp[--hs];if(hs>0){const v=F[l];let c=0;for(;;){let k=2*c+1;if(k>=hs)break;if(k+1<hs&&F[hp[k+1]]<F[hp[k]])k++;if(F[hp[k]]>=v)break;hp[c]=hp[k];c=k}hp[c]=l}return t};
+ for(let y=0;y<W;y++)for(let x=0;x<W;x++){const i=y*W+x;
+  if(x===0||y===0||x===W-1||y===W-1){P[i]=-1;push(i)}
+  else if(E[i]<=0){let land=false;for(let dy=-1;dy<=1&&!land;dy++)for(let dx=-1;dx<=1;dx++)if(E[i+dy*W+dx]>0){land=true;break}P[i]=-1;if(land)push(i)}}
+ const eps=1e-5;
+ while(hs>0){const c=pop();O[no++]=c;const cx=c%W,cy=(c-cx)/W;
+  for(let dy=-1;dy<=1;dy++){const ny=cy+dy;if(ny<0||ny>=W)continue;for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=cx+dx;if(nx<0||nx>=W)continue;const n=ny*W+nx;if(P[n]!==-2)continue;P[n]=c;if(F[n]<=F[c])F[n]=F[c]+eps;push(n)}}}
+ const A=new Float32Array(N).fill(1);for(let i=no-1;i>=0;i--){const c=O[i],p=P[c];if(p>=0)A[p]+=A[c]}
+ let out=-1,best=-1;const r=8;
+ for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const x=px+dx,y=py+dy;if(x<1||y<1||x>=W-1||y>=W-1)continue;const i=y*W+x;if(E[i]<=0)continue;if(dx*dx+dy*dy>r*r)continue;if(A[i]>best){best=A[i];out=i}}
+ if(out<0)return null;
+ const M=new Uint8Array(N),D=new Float32Array(N);M[out]=1;
+ for(let i=0;i<no;i++){const c=O[i];if(c===out)continue;const p=P[c];if(p>=0&&M[p]){M[c]=1;const ddx=Math.abs(c%W-p%W),ddy=Math.abs(((c/W)|0)-((p/W)|0));D[c]=D[p]+(ddx&&ddy?cs*1.41421:cs)}}
+ let n=0,edges=0,far=out,touch=false,emin=1e9,emax=-1e9,esum=0,ssum=0,sn=0,strm=0;
+ for(let i=0;i<N;i++){if(!M[i])continue;n++;const x=i%W,y=(i-x)/W;
+  if(x===0||y===0||x===W-1||y===W-1)touch=true;
+  if(x===0||!M[i-1])edges++;if(x===W-1||!M[i+1])edges++;if(y===0||!M[i-W])edges++;if(y===W-1||!M[i+W])edges++;
+  if(D[i]>D[far])far=i;const e=E[i];if(e<emin)emin=e;if(e>emax)emax=e;esum+=e;
+  if(x>0&&y>0&&x<W-1&&y<W-1){const gx=(E[i+1]-E[i-1])/(2*cs),gy=(E[i+W]-E[i-W])/(2*cs);ssum+=Math.hypot(gx,gy)*100;sn++}
+  if(A[i]>=thr)strm++}
+ const main=new Uint8Array(N);let c=far;while(c>=0&&c!==out){main[c]=1;c=P[c]}main[out]=1;
+ return{M,D,A,P,main,out,n,edges,far,touch,emin,emax,emean:esum/n,slope:sn?ssum/sn:0,strm,maxD:D[far],acc:best,W}}
+/*END-DAS-CORE*/
+
+/* ================= Peta ================= */
+const PC={DKI:'#6366f1',JABAR:'#f59e0b',BANTEN:'#ec4899',KRW:'#16a34a'};
+const fillColor=['case',['==',['get','t'],'karawang-city'],PC.KRW,['match',['get','prov'],'DKI',PC.DKI,'JABAR',PC.JABAR,'BANTEN',PC.BANTEN,'#94a3b8']];
+let DATA=null,cur='terang',styleReady=false,fillOp=.16,t3d=false,hov=null,sel=null,fontStack;
+const GC={lk:{c:'#0891b2',z:8.5,t:'Danau & waduk'},wf:{c:'#0ea5e9',z:11.5,t:'Air terjun & mata air panas'},bc:{c:'#ca8a04',z:9.5,t:'Pantai'},nr:{c:'#15803d',z:8.5,t:'Kawasan konservasi'},ap:{c:'#7c3aed',z:9,t:'Bandara'},st:{c:'#be123c',z:11,t:'Stasiun kereta'},pl:{c:'#4f46e5',z:9.5,t:'Nama pulau'}};
+const vis={lk:1,wf:1,bc:1,nr:1,ap:1,st:1,pl:1,out:1,kab:1,krw:1,kec:1,fill:1,lbl:1,kabl:1,poi:1,hill:1,isl:1,rv:1,pk:1,flt:1,gem:0,q:0,vol:1,volr:0,evt:1};
+let EX={rv:[],pk:[],geo:[]},QK=[],GEMF=[],qm='pt',ana='none',anaOp=.7,cntOn=false,casOn=true,DAS=null,dasMk=null;
+const LY={out:['out-glow','out-line','out-case'],kab:['kab-line','sb-line','kab-case'],krw:['krw-line'],kec:['kec-line','kec-case'],fill:['kec-fill','sb-fill'],lbl:['kec-label'],kabl:['kab-lbl'],poi:['poi-pt','poi-lbl'],hill:['hill'],isl:['isl-pt','isl-lbl','isl-fill','isl-ln'],rv:['rv-line','rv-lbl'],pk:['pk-pt','pk-lbl'],flt:['flt-ln','flt-sub','flt-lb'],gem:['gem-ln'],vol:['vol-pt','vol-lb'],volr:['vol-ring','vol-ringl'],evt:['evt-pt','evt-lb'],...Object.fromEntries(Object.keys(GC).map(k=>[k,['g-'+k,'gl-'+k]]))};
+const fo=()=>['case',['boolean',['feature-state','sel'],false],.6,['boolean',['feature-state','hov'],false],Math.min(.45,fillOp+.18),fillOp];
+const zi=(...a)=>['interpolate',['linear'],['zoom'],...a];
+const zw=(s,w,add=0)=>zi(...s.flatMap(([z,v])=>[z,v*w+add]));
+/* gaya batas */
+const LTc={out:'#e11d48',kab:'#2563eb',krw:'#16a34a',kec:'#c2410c'},DKc={out:'#fb7185',kab:'#60a5fa',krw:'#4ade80',kec:'#fb923c'};
+const mkS=(s,o)=>({c:null,w:1,o:1,d:0,edit:0,s,os:o});
+const STY0=()=>({out:mkS([[6,2.4],[12,4.5]]),kab:mkS([[6,1.4],[12,3]]),krw:mkS([[6,2],[12,3.6]]),kec:mkS([[7,.3],[12,1.3]],[[7,.3],[10,.9]])});
+let STY=STY0();
+const LID={out:['out-line'],kab:['kab-line','sb-line'],krw:['krw-line'],kec:['kec-line']},CAS={out:'out-case',kab:'kab-case',kec:'kec-case'};
+const DASH=[null,[3,2],[.4,2.2]];
+const colOf=k=>STY[k].edit?STY[k].c:(BASE[cur].dark?DKc[k]:LTc[k]);
+function styLine(k){const s=STY[k],c=colOf(k),dk=BASE[cur].dark;
+ LID[k].forEach(id=>{if(!map.getLayer(id))return;map.setPaintProperty(id,'line-color',c);map.setPaintProperty(id,'line-width',zw(s.s,s.w));
+  map.setPaintProperty(id,'line-opacity',s.os?zi(...s.os.flatMap(([z,v])=>[z,v*s.o])):s.o);
+  if(id!=='sb-line')map.setPaintProperty(id,'line-dasharray',DASH[s.d]||[1,0])});
+ const ci=CAS[k];if(ci&&map.getLayer(ci)){map.setPaintProperty(ci,'line-color',dk?'#000':'#fff');map.setPaintProperty(ci,'line-width',zw(s.s,s.w,k==='kec'?1.2:2.4));map.setPaintProperty(ci,'line-opacity',casOn?(dk?.5:.7)*(s.o):0)}
+ const sw=$(`[data-sw="${k}"]`);if(sw){sw.style.borderColor=c;sw.style.borderTopStyle=['solid','dashed','dotted'][s.d];sw.style.borderTopWidth=Math.max(1,Math.min(5,Math.round(s.w*3)))+'px'}
+ const ci2=$(`.bs[data-k="${k}"] [data-p="c"]`);if(ci2&&!s.edit)ci2.value=c}
+const styAll=()=>Object.keys(STY).forEach(styLine);
+const map=new maplibregl.Map({container:'map',style:BASE.terang.s,center:[106.8,-6.5],zoom:8,minZoom:4,maxPitch:75,attributionControl:{compact:true},preserveDrawingBuffer:true});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
+map.addControl(new maplibregl.FullscreenControl(),'top-right');
+let scM=new maplibregl.ScaleControl({unit:'metric'}),scI=null;map.addControl(scM,'bottom-right');
+const pad=()=>({top:70,bottom:innerWidth>640?70:120,left:innerWidth>640?380:30,right:60});
+const fit=(b,o={})=>map.fitBounds([[b[0],b[1]],[b[2],b[3]]],{padding:pad(),duration:900,...o});
+/* overlay PJ */
+const GIB=(l,m,e)=>d=>`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${l}/default/${d}/${m}/{z}/{y}/{x}.${e}`;
+const ndm=d=>{const x=new Date(d);x.setUTCMonth(x.getUTCMonth()-2);return x.toISOString().slice(0,7)+'-01'};
+const PJ=[
+ {id:'tc',n:'MODIS Terra — warna asli (harian)',u:d=>GIB('MODIS_Terra_CorrectedReflectance_TrueColor','GoogleMapsCompatible_Level9','jpg')(d),mz:9,a:'NASA GIBS/MODIS',op:.9,v:0},
+ {id:'nd',n:'MODIS NDVI bulanan (vegetasi)',u:d=>GIB('MODIS_Terra_L3_NDVI_Monthly','GoogleMapsCompatible_Level9','png')(ndm(d)),mz:9,a:'NASA GIBS/MODIS',op:.8,v:0},
+ {id:'lst',n:'MODIS suhu permukaan siang (LST)',u:d=>GIB('MODIS_Terra_Land_Surface_Temp_Day','GoogleMapsCompatible_Level7','png')(d),mz:7,a:'NASA GIBS/MODIS',op:.75,v:0},
+ {id:'nl',n:'VIIRS cahaya malam (Black Marble)',u:()=>GIB('VIIRS_Black_Marble','GoogleMapsCompatible_Level8','png')('2016-01-01'),mz:8,a:'NASA GIBS/VIIRS',op:.85,v:0},
+ {id:'s16',n:'Sentinel-2 cloudless 2016',u:()=>EOX(2016),mz:14,a:'Sentinel-2 cloudless © EOX',op:1,v:0},
+ {id:'s23',n:'Sentinel-2 cloudless 2023',u:()=>EOX(2023),mz:14,a:'Sentinel-2 cloudless © EOX',op:1,v:0}];
+let CUS=[],UP=[],pjDate=new Date(Date.now()-2*864e5).toISOString().slice(0,10);
+const rasLayer=(id,tiles,mz,a,op,before)=>{if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id);map.addSource(id,{type:'raster',tiles:[tiles],tileSize:256,maxzoom:mz,attribution:a});map.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':op,'raster-fade-duration':0}},before&&map.getLayer(before)?before:undefined)};
+function addPJ(p,before){rasLayer('pj-'+p.id,p.u(pjDate),p.mz,p.a,p.op,before)}
+const rmL=id=>{if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id)};
+function addAna(before){rmL('ana');if(ana==='none'||!protoOK)return;map.addSource('ana',{type:'raster',tiles:['rdem://'+ana+'/{z}/{x}/{y}'],tileSize:256,maxzoom:14});map.addLayer({id:'ana',type:'raster',source:'ana',paint:{'raster-opacity':anaOp,'raster-fade-duration':0}},before&&map.getLayer(before)?before:undefined)}
+function addCnt(before){rmL('cnt');if(!cntOn||!protoOK)return;map.addSource('cnt',{type:'raster',tiles:['rdem://cnt/{z}/{x}/{y}'],tileSize:256,maxzoom:14});map.addLayer({id:'cnt',type:'raster',source:'cnt',paint:{'raster-opacity':.9,'raster-fade-duration':0}},before&&map.getLayer(before)?before:undefined)}
+function showDAS(){rmL('das-r');if(!DAS)return;map.addSource('das-r',{type:'image',url:DAS.url,coordinates:DAS.coords});map.addLayer({id:'das-r',type:'raster',source:'das-r',paint:{'raster-opacity':1,'raster-fade-duration':0,'raster-resampling':'nearest'}},map.getLayer('rv-line')?'rv-line':undefined)}
+function addUP(u){const id='up-'+u.id;['f','l','p'].forEach(s=>rmL2(id+s));if(map.getSource(id))map.removeSource(id);map.addSource(id,{type:'geojson',data:u.data});
+ map.addLayer({id:id+'f',type:'fill',source:id,filter:['==',['geometry-type'],'Polygon'],paint:{'fill-color':u.c,'fill-opacity':.2}});
+ map.addLayer({id:id+'l',type:'line',source:id,filter:['!=',['geometry-type'],'Point'],paint:{'line-color':u.c,'line-width':2}});
+ map.addLayer({id:id+'p',type:'circle',source:id,filter:['==',['geometry-type'],'Point'],paint:{'circle-radius':5,'circle-color':u.c,'circle-stroke-color':'#fff','circle-stroke-width':1.5}})}
+const rmL2=id=>{if(map.getLayer(id))map.removeLayer(id)};
+function addLayers(){
+ const m=map,V=k=>vis[k]?'visible':'none',dk=BASE[cur].dark;
+ const f=(m.getStyle().layers.find(l=>l.layout&&l.layout['text-font'])||{layout:{}}).layout['text-font'];
+ fontStack=Array.isArray(f)&&f.every(x=>typeof x==='string')&&!['literal','step','case','match','get','interpolate'].includes(f[0])?f:['Open Sans Regular','Arial Unicode MS Regular'];
+ sel=null;hov=null;
+ PJ.filter(p=>p.v).forEach(p=>addPJ(p));CUS.forEach(c=>rasLayer('cu-'+c.id,c.u,19,c.n,c.op));
+ m.addSource('dem',{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:14,attribution:'Relief: Mapzen/AWS'});
+ m.addLayer({id:'hill',type:'hillshade',source:'dem',layout:{visibility:V('hill')},paint:{'hillshade-exaggeration':.5,'hillshade-shadow-color':dk?'#000':'#334155','hillshade-highlight-color':dk?'#94a3b8':'#fff','hillshade-accent-color':'#64748b'}});
+ if(t3d)m.setTerrain({source:'dem',exaggeration:1.5});
+ addAna();addCnt();showDAS();
+ m.addSource('kec',{type:'geojson',data:fc(DATA.feats)});m.addSource('kab',{type:'geojson',data:fc(DATA.kab)});m.addSource('kabp',{type:'geojson',data:fc(DATA.kabp||[])});
+ m.addSource('out',{type:'geojson',data:fc(DATA.out?[DATA.out]:[])});m.addSource('poi',{type:'geojson',data:poiGeo});
+ m.addSource('rv',{type:'geojson',data:fc(EX.rv)});m.addSource('pk',{type:'geojson',data:fc(EX.pk)});m.addSource('isl',{type:'geojson',data:fc(DATA.isl||[])});m.addSource('meas',{type:'geojson',data:fc([])});
+ m.addSource('sbr',{type:'geojson',data:fc(DATA.sb?[DATA.sb]:[])});m.addSource('geo',{type:'geojson',data:fc(EX.geo||[])});
+ m.addSource('flt',{type:'geojson',data:faultGeo});m.addSource('gem',{type:'geojson',data:fc(GEMF)});m.addSource('quake',{type:'geojson',data:fc(QK)});
+ m.addSource('vol',{type:'geojson',data:volGeo});m.addSource('volr',{type:'geojson',data:fc(VOL.flatMap(([n,x,y])=>[15,10,5].map(r=>({type:'Feature',properties:{r},geometry:{type:'Polygon',coordinates:[circle([x,y],r)]}}))))});
+ m.addSource('evt',{type:'geojson',data:evtGeo});m.addSource('grid',{type:'geojson',data:fc([])});m.addSource('gridp',{type:'geojson',data:fc([])});m.addSource('profpt',{type:'geojson',data:fc([])});
+ const rnd={'line-cap':'round','line-join':'round'},rc=dk?'#38bdf8':'#0284c7',hl={'text-halo-color':dk?'rgba(15,23,42,.9)':'rgba(255,255,255,.92)','text-halo-width':1.4},tx=dk?'#e2e8f0':'#0f172a';
+ m.addLayer({id:'rv-line',type:'line',source:'rv',layout:{visibility:V('rv'),...rnd},paint:{'line-color':rc,'line-width':zi(8,.8,13,2.6),'line-opacity':.9}});
+ m.addLayer({id:'rv-lbl',type:'symbol',source:'rv',minzoom:10,layout:{visibility:V('rv'),'symbol-placement':'line','text-field':['get','n'],'text-font':fontStack,'text-size':10},paint:{'text-color':rc,...hl}});
+ m.addLayer({id:'kec-fill',type:'fill',source:'kec',layout:{visibility:V('fill')},paint:{'fill-color':fillColor,'fill-opacity':fo()}});
+ m.addLayer({id:'kec-case',type:'line',source:'kec',layout:{visibility:V('kec'),...rnd},paint:{'line-color':'#fff','line-width':2,'line-opacity':0}});
+ m.addLayer({id:'kec-line',type:'line',source:'kec',layout:{visibility:V('kec'),...rnd},paint:{'line-color':'#b45309','line-width':1}});
+ m.addLayer({id:'kab-case',type:'line',source:'kab',filter:['!=',['get','krw'],1],layout:{visibility:V('kab'),...rnd},paint:{'line-color':'#fff','line-width':3,'line-opacity':0}});
+ m.addLayer({id:'kab-line',type:'line',source:'kab',filter:['!=',['get','krw'],1],layout:{visibility:V('kab'),...rnd},paint:{'line-color':'#2563eb','line-width':2}});
+ m.addLayer({id:'krw-line',type:'line',source:'kab',filter:['==',['get','krw'],1],layout:{visibility:V('krw'),...rnd},paint:{'line-color':'#16a34a','line-width':3}});
+ m.addLayer({id:'out-glow',type:'line',source:'out',layout:{visibility:V('out'),...rnd},paint:{'line-color':'#e11d48','line-width':12,'line-blur':8,'line-opacity':.25}});
+ m.addLayer({id:'out-case',type:'line',source:'out',layout:{visibility:V('out'),...rnd},paint:{'line-color':'#fff','line-width':6,'line-opacity':0}});
+ m.addLayer({id:'out-line',type:'line',source:'out',layout:{visibility:V('out'),...rnd},paint:{'line-color':'#e11d48','line-width':3}});
+ m.addLayer({id:'grid-ln',type:'line',source:'grid',paint:{'line-color':dk?'#cbd5e1':'#334155','line-width':.8,'line-opacity':.55,'line-dasharray':[4,3]}});
+ m.addLayer({id:'kec-label',type:'symbol',source:'kec',minzoom:10.5,layout:{visibility:V('lbl'),'text-field':['get','kec'],'text-font':fontStack,'text-size':zi(10.5,10,14,13),'text-max-width':6},paint:{'text-color':dk?'#f1f5f9':'#1e293b',...hl}});
+ m.addLayer({id:'kab-lbl',type:'symbol',source:'kabp',minzoom:7.5,maxzoom:11,layout:{visibility:V('kabl'),'text-field':['get','n'],'text-font':fontStack,'text-size':zi(7.5,11,10,14),'text-max-width':7,'text-transform':'uppercase','text-letter-spacing':.08},paint:{'text-color':dk?'#bfdbfe':'#1e3a8a',...hl,'text-halo-width':1.8}});
+ m.addLayer({id:'poi-pt',type:'circle',source:'poi',layout:{visibility:V('poi')},paint:{'circle-radius':['match',['get','k'],'ibukota',7,'kota',4.5,'gunung',4.5,3.5],'circle-color':['match',['get','k'],'ibukota','#2563eb','kota','#334155','gunung','#92400e','air','#0891b2','konservasi','#15803d','#7c3aed'],'circle-stroke-color':'#fff','circle-stroke-width':1.5}});
+ m.addLayer({id:'poi-lbl',type:'symbol',source:'poi',minzoom:7,layout:{visibility:V('poi'),'text-field':['get','n'],'text-font':fontStack,'text-size':11,'text-offset':[0,.9],'text-anchor':'top','text-optional':true},paint:{'text-color':tx,...hl}});
+ m.addLayer({id:'isl-pt',type:'circle',source:'isl',filter:['!',['has','lab']],maxzoom:12,layout:{visibility:V('isl')},paint:{'circle-radius':zi(7,1.8,11,3.5),'circle-color':PC.DKI,'circle-stroke-color':'#fff','circle-stroke-width':.8}});
+ m.addLayer({id:'isl-lbl',type:'symbol',source:'isl',filter:['has','lab'],minzoom:6,maxzoom:11.5,layout:{visibility:V('isl'),'text-field':['get','n'],'text-font':fontStack,'text-size':12,'text-offset':[0,1.2]},paint:{'text-color':dk?'#c7d2fe':'#4338ca',...hl}});
+ m.addLayer({id:'pk-pt',type:'circle',source:'pk',layout:{visibility:V('pk')},paint:{'circle-radius':3.5,'circle-color':'#92400e','circle-stroke-color':'#fff','circle-stroke-width':1.2}});
+ m.addLayer({id:'pk-lbl',type:'symbol',source:'pk',minzoom:9,layout:{visibility:V('pk'),'text-field':['concat',['get','n'],' ',['to-string',['get','e']],' m'],'text-font':fontStack,'text-size':10,'text-offset':[0,.8],'text-anchor':'top','text-optional':true},paint:{'text-color':dk?'#fcd9b6':'#7c2d12',...hl}});
+ m.addLayer({id:'sb-fill',type:'fill',source:'sbr',layout:{visibility:V('fill')},paint:{'fill-color':PC.DKI,'fill-opacity':.08}});
+ m.addLayer({id:'isl-fill',type:'fill',source:'kec',filter:['==',['get','sb'],1],layout:{visibility:V('isl')},paint:{'fill-color':PC.DKI,'fill-opacity':zi(8,.7,12,.3)}});
+ m.addLayer({id:'isl-ln',type:'line',source:'kec',filter:['==',['get','sb'],1],layout:{visibility:V('isl')},paint:{'line-color':PC.DKI,'line-width':zi(7,1,13,2)}});
+ m.addLayer({id:'sb-line',type:'line',source:'sbr',layout:{visibility:V('kab'),...rnd},paint:{'line-color':'#1d4ed8','line-width':2.2,'line-dasharray':[3,1.5]}});
+ for(const k in GC){const c=GC[k],fl=['==',['get','k'],k];
+  m.addLayer({id:'g-'+k,type:'circle',source:'geo',minzoom:c.z,filter:fl,layout:{visibility:V(k)},paint:{'circle-radius':zi(8,2.5,13,5),'circle-color':c.c,'circle-stroke-color':'#fff','circle-stroke-width':1}});
+  m.addLayer({id:'gl-'+k,type:'symbol',source:'geo',minzoom:c.z+1,filter:fl,layout:{visibility:V(k),'text-field':['get','n'],'text-font':fontStack,'text-size':10.5,'text-offset':[0,.8],'text-anchor':'top','text-optional':true},paint:{'text-color':dk?'#e2e8f0':'#1e293b',...hl}})}
+ /* geologi & bencana */
+ const fcol=['match',['get','t'],'geser','#dc2626','naik','#c2410c','#7f1d1d'];
+ m.addLayer({id:'vol-ring',type:'fill',source:'volr',layout:{visibility:V('volr')},paint:{'fill-color':'#ea580c','fill-opacity':.05}});
+ m.addLayer({id:'vol-ringl',type:'line',source:'volr',layout:{visibility:V('volr')},paint:{'line-color':'#ea580c','line-width':1,'line-dasharray':[3,2],'line-opacity':.8}});
+ m.addLayer({id:'flt-sub',type:'line',source:'flt',filter:['==',['get','t'],'subduksi'],layout:{visibility:V('flt'),...rnd},paint:{'line-color':'#7f1d1d','line-width':zi(5,2.5,12,5),'line-dasharray':[2.5,1.5]}});
+ m.addLayer({id:'flt-ln',type:'line',source:'flt',filter:['!=',['get','t'],'subduksi'],layout:{visibility:V('flt'),...rnd},paint:{'line-color':fcol,'line-width':zi(6,1.8,12,4)}});
+ m.addLayer({id:'gem-ln',type:'line',source:'gem',layout:{visibility:V('gem'),...rnd},paint:{'line-color':['match',['get','st'],'rev','#c2410c','nor','#a16207','sub','#7f1d1d','#f97316'],'line-width':zi(5,1,12,2.6),'line-opacity':.9}});
+ m.addLayer({id:'flt-lb',type:'symbol',source:'flt',minzoom:7,layout:{visibility:V('flt'),'symbol-placement':'line','text-field':['get','n'],'text-font':fontStack,'text-size':11,'symbol-spacing':380},paint:{'text-color':dk?'#fecaca':'#991b1b',...hl}});
+ const qc=['step',['get','dep'],'#ef4444',30,'#f97316',70,'#eab308',150,'#22c55e',300,'#3b82f6'],mr=a=>['interpolate',['linear'],['get','mag'],2,a*.5,4,a*1.1,5,a*1.8,6,a*3,7,a*4.5,8,a*6];
+ m.addLayer({id:'q-heat',type:'heatmap',source:'quake',layout:{visibility:vis.q&&qm!=='pt'?'visible':'none'},paint:{'heatmap-weight':['interpolate',['linear'],['get','mag'],2,.1,5,.6,7,1],'heatmap-intensity':zi(5,.7,10,2.2),'heatmap-radius':zi(5,8,10,30),'heatmap-opacity':.8,'heatmap-color':['interpolate',['linear'],['heatmap-density'],0,'rgba(0,0,0,0)',.2,'rgba(254,217,118,.6)',.4,'rgb(253,141,60)',.7,'rgb(227,26,28)',1,'rgb(128,0,38)']}});
+ m.addLayer({id:'q-pt',type:'circle',source:'quake',layout:{visibility:vis.q&&qm!=='heat'?'visible':'none'},paint:{'circle-radius':zi(5,mr(1.4),11,mr(2.4)),'circle-color':qc,'circle-opacity':.72,'circle-stroke-color':'#fff','circle-stroke-width':.5}});
+ m.addLayer({id:'vol-pt',type:'circle',source:'vol',layout:{visibility:V('vol')},paint:{'circle-radius':6,'circle-color':'#ea580c','circle-stroke-color':'#fff','circle-stroke-width':2}});
+ m.addLayer({id:'vol-lb',type:'symbol',source:'vol',minzoom:8,layout:{visibility:V('vol'),'text-field':['get','n'],'text-font':fontStack,'text-size':11,'text-offset':[0,.9],'text-anchor':'top','text-optional':true},paint:{'text-color':dk?'#fed7aa':'#9a3412',...hl}});
+ m.addLayer({id:'evt-pt',type:'circle',source:'evt',layout:{visibility:V('evt')},paint:{'circle-radius':7,'circle-color':['match',['get','k'],'gempa','#dc2626','tsunami','#0284c7','letusan','#ea580c','banjir','#2563eb','#92400e'],'circle-stroke-color':'#fff','circle-stroke-width':2}});
+ m.addLayer({id:'evt-lb',type:'symbol',source:'evt',minzoom:8.5,layout:{visibility:V('evt'),'text-field':['get','n'],'text-font':fontStack,'text-size':10.5,'text-offset':[0,1],'text-anchor':'top','text-optional':true},paint:{'text-color':tx,...hl}});
+ m.addLayer({id:'grid-lb',type:'symbol',source:'gridp',layout:{'text-field':['get','t'],'text-font':fontStack,'text-size':10,'text-allow-overlap':true},paint:{'text-color':dk?'#e2e8f0':'#1e293b',...hl}});
+ m.addLayer({id:'prof-pt',type:'circle',source:'profpt',paint:{'circle-radius':6,'circle-color':'#f59e0b','circle-stroke-color':'#fff','circle-stroke-width':2}});
+ m.addLayer({id:'meas-fill',type:'fill',source:'meas',filter:['==',['geometry-type'],'Polygon'],paint:{'fill-color':'#7c3aed','fill-opacity':.18}});
+ m.addLayer({id:'meas-ln',type:'line',source:'meas',filter:['==',['geometry-type'],'LineString'],paint:{'line-color':'#7c3aed','line-width':2.5,'line-dasharray':[2,1.2]}});
+ m.addLayer({id:'meas-pt',type:'circle',source:'meas',filter:['==',['geometry-type'],'Point'],paint:{'circle-radius':4.5,'circle-color':'#fff','circle-stroke-color':'#7c3aed','circle-stroke-width':2}});
+ UP.forEach(addUP);
+ styAll();qFilter();updMeas();updGrid()}
+function ensure(){styleReady=true;if(DATA&&!map.getSource('kec')){try{addLayers()}catch(e){console.warn(e)}}}
+map.on('style.load',ensure);map.on('styledata',()=>{if(DATA&&!map.getSource('kec')&&map.isStyleLoaded())ensure()});map.on('idle',()=>{if(DATA&&!map.getSource('kec'))ensure()});
+/* ===== Interaksi ===== */
+const lbl=f=>f.properties.kec+' — '+f.properties.kab;
+function select(i){if(sel!=null)map.setFeatureState({source:'kec',id:sel},{sel:false});sel=i;if(i!=null)map.setFeatureState({source:'kec',id:i},{sel:true})}
+function pop(i,ll){const p=DATA.feats[i].properties,st={full:'Wilayah utuh',partial:'Kecamatan terpilih (sebagian kab.)','karawang-city':'Usulan Kota Karawang'}[p.t];
+ new maplibregl.Popup({closeButton:false,offset:8,maxWidth:'270px'}).setLngLat(ll).setHTML(`<b>${X(p.kec)}</b><div class="pm">${X(p.kab)}<br>Provinsi asal: ${X(p.pr)}<br>${st} · ${p.km2.toLocaleString('id-ID')} km²<br><span id="pe">Elevasi: memuat…</span></div>`).addTo(map);
+ elevAt(ll.lng,ll.lat).then(e=>{const el=document.getElementById('pe');if(el)el.textContent='Elevasi titik klik: '+Math.round(e)+' m'}).catch(()=>{const el=document.getElementById('pe');if(el)el.textContent=''})}
+map.on('mousemove','kec-fill',e=>{if(tool)return;map.getCanvas().style.cursor='pointer';const id=e.features[0]&&e.features[0].id;if(id===hov)return;if(hov!=null)map.setFeatureState({source:'kec',id:hov},{hov:false});hov=id;map.setFeatureState({source:'kec',id},{hov:true})});
+map.on('mouseleave','kec-fill',()=>{if(!tool)map.getCanvas().style.cursor='';if(hov!=null)map.setFeatureState({source:'kec',id:hov},{hov:false});hov=null});
+const upd=()=>{const z=map.getZoom(),c=map.getCenter(),mpp=156543.03392*Math.cos(c.lat*rad)/2**z;return `1 : ${fmt(Math.round(mpp/(.0254/96)),0)}`};
+map.on('mousemove',e=>{const el=map.queryTerrainElevation?map.queryTerrainElevation(e.lngLat):null,u=utm(e.lngLat.lat,e.lngLat.lng);$('#coord').textContent=`${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)} · UTM ${u.zone}${u.band} ${Math.round(u.E)} E ${Math.round(u.N)} N · z${map.getZoom().toFixed(1)} · ${upd()}`+(el!=null?` · ${Math.round(el)} m`:'')});
+const hit=(e,ids,r=6)=>{const a=ids.filter(i=>map.getLayer(i));return a.length?map.queryRenderedFeatures([[e.point.x-r,e.point.y-r],[e.point.x+r,e.point.y+r]],{layers:a})[0]:null};
+const POP=(ll,h,o={})=>new maplibregl.Popup({closeButton:false,offset:8,maxWidth:'280px',...o}).setLngLat(ll).setHTML(h).addTo(map);
+const wib=t=>new Date(t).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',dateStyle:'medium',timeStyle:'short'})+' WIB';
+map.on('click',e=>{
+ if(tool){toolClick(e);return}
+ let f;
+ if(f=hit(e,['q-pt'],7)){const p=f.properties;POP(f.geometry.coordinates,`<b>M ${Number(p.mag).toFixed(1)}</b><div class="pm">${X(p.pl)}<br>Kedalaman: ${fmt(p.dep,1)} km<br>${wib(p.t)}${p.url?`<br><a href="${X(p.url)}" target="_blank" rel="noopener">Detail USGS</a>`:''}</div>`);return}
+ if(f=hit(e,['evt-pt'],8)){const p=f.properties;POP(f.geometry.coordinates,`<b>${X(p.n)}</b><div class="pm">${X(p.d)}<br><i>Lokasi perkiraan</i></div>`);return}
+ if(f=hit(e,['vol-pt'],8)){const p=f.properties;POP(f.geometry.coordinates,`<b>${X(p.nm)}</b><div class="pm">${X(p.d)}</div>`);return}
+ if(f=hit(e,['flt-ln','flt-sub'],7)){const p=f.properties;POP(e.lngLat,`<b>${X(p.n)}</b><div class="pm">${X(p.d)}<br><i>Jalur skematik (±5–10 km)</i></div>`);return}
+ if(f=hit(e,['gem-ln'],6)){const p=f.properties;POP(e.lngLat,`<b>${X(p.nm||'Sesar aktif')}</b><div class="pm">Tipe gerak: ${X(p.sl||'?')}<br>Sumber: GEM Global Active Faults</div>`);return}
+ const gi=Object.keys(GC).map(k=>'g-'+k);if(f=hit(e,gi,6)){POP(f.geometry.coordinates,`<b>${X(f.properties.n)}</b><div class="pm">${GC[f.properties.k].t}</div>`);return}
+ if(UP.length&&(f=hit(e,UP.flatMap(u=>['f','l','p'].map(s=>'up-'+u.id+s)),6))){const p=f.properties,k=Object.keys(p).slice(0,8);POP(e.lngLat,`<b>Fitur unggahan</b><div class="pm">${k.length?k.map(a=>X(a)+': '+X(p[a])).join('<br>'):'(tanpa atribut)'}</div>`);return}
+ if(map.getLayer('kec-fill')){const h=map.queryRenderedFeatures(e.point,{layers:['kec-fill']})[0];
+  if(h){select(h.id);pop(h.id,e.lngLat);return}
+  const r=9,s=map.queryRenderedFeatures([[e.point.x-r,e.point.y-r],[e.point.x+r,e.point.y+r]],{layers:['kec-fill']}).find(x=>x.properties.sb);if(s){select(s.id);pop(s.id,e.lngLat);return}
+  if(map.getLayer('sb-fill')&&map.queryRenderedFeatures(e.point,{layers:['sb-fill']}).length)POP(e.lngLat,`<b>Kabupaten Kepulauan Seribu</b><div class="pm">${DATA.feats.filter(x=>x.properties.sb).length} kecamatan · garis putus-putus = perkiraan selubung pulau</div>`)}});
+map.addControl(new maplibregl.GeolocateControl({positionOptions:{enableHighAccuracy:true},trackUserLocation:false}),'top-right');
+function focusFeat(i){const b=DATA.bbs[i];select(i);fit(b,{maxZoom:12.5});map.once('moveend',()=>pop(i,[(b[0]+b[2])/2,(b[1]+b[3])/2]))}
+$('#q').addEventListener('change',e=>{const i=DATA.feats.findIndex(f=>lbl(f)===e.target.value);if(i>=0)focusFeat(i)});
+/* ===== UI: tab, lapisan, gaya ===== */
+$('#tabs').onclick=e=>{const t=e.target.dataset.t;if(!t)return;$$('.tab').forEach(b=>b.classList.toggle('on',b===e.target));$$('.pane').forEach(p=>p.classList.toggle('on',p.id==='p-'+t))};
+$('#gx').innerHTML=Object.entries(GC).map(([k,c])=>`<label class="sw"><input type="checkbox" data-l="${k}" checked><span class="ln" style="border-color:${c.c}"></span>${c.t}</label>`).join('');
+function setVis(k,on){vis[k]=on?1:0;(LY[k]||[]).forEach(id=>map.getLayer(id)&&map.setLayoutProperty(id,'visibility',on?'visible':'none'));$$(`[data-l="${k}"]`).forEach(c=>c.checked=!!on)}
+document.addEventListener('change',e=>{const c=e.target;if(c.dataset&&c.dataset.l)setVis(c.dataset.l,c.checked)});
+const BL=[['out','Batas luar provinsi (usulan)'],['kab','Batas kabupaten/kota'],['krw','Kota Karawang (usulan)'],['kec','Batas kecamatan']];
+$('#bnd').innerHTML=BL.map(([k,n])=>`<div class="bs" data-k="${k}"><label class="sw"><input type="checkbox" data-l="${k}" checked><span class="ln" data-sw="${k}"></span><b>${n}</b></label><div class="ctl"><input type="color" data-p="c" value="${LTc[k]}" title="Warna"><input type="range" data-p="w" min="0.3" max="3" step="0.1" value="1" title="Ketebalan"><input type="range" data-p="o" min="0.1" max="1" step="0.05" value="1" title="Opasitas"><select data-p="d" title="Pola"><option value="0">Solid</option><option value="1">Putus</option><option value="2">Titik</option></select></div></div>`).join('');
+$('#bnd').addEventListener('input',e=>{const p=e.target.dataset.p;if(!p)return;const k=e.target.closest('.bs').dataset.k,s=STY[k];
+ if(p==='c'){s.c=e.target.value;s.edit=1}else if(p==='d')s.d=+e.target.value;else s[p]=+e.target.value;styLine(k)});
+$('#bsr').onclick=()=>{STY=STY0();$$('.bs').forEach(b=>{const k=b.dataset.k;b.querySelector('[data-p=w]').value=1;b.querySelector('[data-p=o]').value=1;b.querySelector('[data-p=d]').value=0});styAll()};
+$('#cas').onchange=e=>{casOn=e.target.checked;styAll()};
+$('#t3d').onchange=e=>{t3d=e.target.checked;if(styleReady&&map.getSource('dem'))map.setTerrain(t3d?{source:'dem',exaggeration:1.5}:null);map.easeTo({pitch:t3d?62:0,bearing:t3d?-12:0,duration:900})};
+$('#op').oninput=e=>{fillOp=e.target.value/100;map.getLayer('kec-fill')&&map.setPaintProperty('kec-fill','fill-opacity',fo())};
+$('#bases').innerHTML=Object.entries(BASE).map(([k,v])=>`<button class="btn${k===cur?' on':''}" data-b="${k}">${v.n}</button>`).join('');
+$('#bases').onclick=e=>{const k=e.target.dataset.b;if(!k||k===cur)return;cur=k;styleReady=false;document.body.classList.toggle('dark',!!BASE[k].dark);$$('[data-b]').forEach(b=>b.classList.toggle('on',b.dataset.b===k));map.setStyle(BASE[k].s,{diff:false})};
+$('#min').onclick=()=>{const p=$('#panel');p.classList.toggle('min');$('#min').textContent=p.classList.contains('min')?'Buka':'Ciutkan'};
+if(matchMedia('(max-width:640px)').matches){$('#panel').classList.add('min');$('#min').textContent='Buka'}
+$('#all').onclick=()=>fit(DATA.all);
+$('#core').onclick=()=>map.flyTo({center:[106.88,-6.28],zoom:8.8});
+$('#re').onclick=()=>init(true);
+/* PJ list */
+$('#pjd').value=pjDate;
+function drawPJ(){$('#pjl').innerHTML=PJ.map(p=>`<div style="margin-bottom:4px"><label class="sw"><input type="checkbox" data-pj="${p.id}"${p.v?' checked':''}><span class="ln" style="border-color:#0d9488"></span>${p.n}</label><input type="range" min="10" max="100" value="${p.op*100}" data-pjo="${p.id}" style="margin-left:30px;width:calc(100% - 30px)"></div>`).join('')}
+drawPJ();
+$('#pjl').addEventListener('change',e=>{const id=e.target.dataset.pj;if(!id)return;const p=PJ.find(x=>x.id===id);p.v=e.target.checked?1:0;if(p.v)addPJ(p,'hill');else rmL('pj-'+p.id)});
+$('#pjl').addEventListener('input',e=>{const id=e.target.dataset.pjo;if(!id)return;const p=PJ.find(x=>x.id===id);p.op=e.target.value/100;map.getLayer('pj-'+id)&&map.setPaintProperty('pj-'+id,'raster-opacity',p.op)});
+$('#pjd').onchange=e=>{pjDate=e.target.value||pjDate;PJ.filter(p=>p.v&&['tc','nd','lst'].includes(p.id)).forEach(p=>addPJ(p,'hill'))};
+/* ===== Analisis medan UI ===== */
+const AN={none:'Tanpa analisis',hyp:'Hipsometri (tinting ketinggian + batimetri)',slp:'Kelas lereng (%)',asp:'Arah hadap lereng (aspek)',shd:'Bayangan relief analitik (315°, 45°)',rgh:'Kekasaran/relief lokal 3×3',lsr:'Rawan longsor (indikatif)',flo:'Elevasi rendah — rob/banjir/tsunami (indikatif)'};
+$('#anal').innerHTML=Object.entries(AN).map(([k,n])=>`<label class="rad"><input type="radio" name="ana" value="${k}"${k==='none'?' checked':''}>${n}</label>`).join('');
+const LEG={
+ hyp:[['#0f1e5a','< −1.000 m'],['#4a90d9','−1.000 – 0 m (laut)'],['#78c687','0–25 m'],['#bedc78','25–100 m'],['#f0e66e','100–250 m'],['#ebbe5a','250–500 m'],['#cd8c46','500–1.000 m'],['#8c5040','1.500–2.500 m'],['#f5f5f5','>3.000 m']],
+ slp:[['rgb(26,150,65)','Datar 0–8%'],['rgb(166,217,106)','Landai 8–15%'],['rgb(255,255,191)','Agak curam 15–25%'],['rgb(253,174,97)','Curam 25–45%'],['rgb(215,25,28)','Sangat curam >45%']],
+ asp:[['hsl(0,75%,55%)','Utara (0°)'],['hsl(90,75%,55%)','Timur (90°)'],['hsl(180,75%,55%)','Selatan (180°)'],['hsl(270,75%,55%)','Barat (270°)'],['#c8c8c8','Datar (<3%)']],
+ shd:[['#fff','Terang (menghadap sinar NW)'],['#808080','Netral'],['#000','Bayangan']],
+ rgh:[['rgb(255,255,204)','<5 m'],['rgb(199,233,180)','5–15 m'],['rgb(127,205,187)','15–30 m'],['rgb(44,127,184)','30–60 m'],['rgb(37,52,148)','>60 m']],
+ lsr:[['rgb(250,204,21)','Rendah (lereng 15–30%)'],['rgb(249,115,22)','Sedang (30–45%)'],['rgb(220,38,38)','Tinggi (45–70%)'],['rgb(127,29,29)','Sangat tinggi (>70%)']],
+ flo:[['rgb(185,28,28)','≤ 2 m'],['rgb(239,68,68)','2–5 m'],['rgb(251,146,60)','5–10 m'],['rgb(253,224,71)','10–25 m']]};
+const legHTML=m=>m==='none'?'':(LEG[m]||[]).map(([c,t])=>`<div class="lgd"><i style="background:${c}"></i>${t}</div>`).join('');
+function setAna(m){ana=m;$$('[name=ana]').forEach(r=>r.checked=r.value===m);addAna('rv-line');const h=legHTML(m);$('#anaLeg').innerHTML=h;$('#bncLeg').innerHTML=(m==='lsr'||m==='flo')?h:'';$$('[data-ana]').forEach(b=>b.classList.toggle('on',b.dataset.ana===m));if(m!=='none'&&!protoOK)msg('Analisis DEM tidak didukung browser ini (butuh MapLibre protokol kustom).')}
+$('#anal').onchange=e=>setAna(e.target.value);
+$$('[data-ana]').forEach(b=>b.onclick=()=>setAna(b.dataset.ana));
+$('#anaop').oninput=e=>{anaOp=e.target.value/100;map.getLayer('ana')&&map.setPaintProperty('ana','raster-opacity',anaOp)};
+$('#cnt').onchange=e=>{cntOn=e.target.checked;addCnt('rv-line')};
+/* ===== Gempa ===== */
+const QP={'30d':{d:30,m:2.5},'1y':{d:365,m:3.5},'10y':{d:3650,m:4.5},all:{d:null,m:5}};
+let qLoaded=false;
+async function loadQuakes(){const p=QP[$('#qp').value],st=p.d?new Date(Date.now()-p.d*864e5):new Date('1973-01-01'),
+ u=`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=-11.5&maxlatitude=-4&minlongitude=103&maxlongitude=111&minmagnitude=${p.m}&orderby=time&limit=20000&starttime=${st.toISOString().slice(0,10)}`;
+ $('#qld').disabled=true;setBar(30,'Mengunduh katalog gempa USGS…');
+ try{const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
+  QK=j.features.filter(f=>f.properties.mag!=null).map((f,i)=>({type:'Feature',id:i,properties:{mag:f.properties.mag,dep:f.geometry.coordinates[2]==null?10:f.geometry.coordinates[2],t:f.properties.time,pl:f.properties.place||'',url:f.properties.url||'',yr:new Date(f.properties.time).getUTCFullYear()},geometry:{type:'Point',coordinates:[f.geometry.coordinates[0],f.geometry.coordinates[1]]}}));
+  qLoaded=true;map.getSource('quake')&&map.getSource('quake').setData(fc(QK));
+  const mn=Math.min(7,Math.max(p.m,+$('#qm').value));$('#qm').min=p.m;if(+$('#qm').value<p.m){$('#qm').value=p.m;$('#qmv').textContent=fmt(p.m,1)}
+  qFilter();setBar(100,`Gempa dimuat: ${fmt(QK.length,0)} kejadian (USGS)${QK.length>=20000?' — dibatasi 20.000, persempit jangka waktu':''}`);quakeStats()}
+ catch(e){setBar(100,'Gagal memuat gempa USGS: '+e.message)}finally{$('#qld').disabled=false}}
+const qFiltered=()=>{const m=+$('#qm').value,d=+$('#qd').value;return QK.filter(f=>f.properties.mag>=m&&f.properties.dep<=d)};
+function qFilter(){const m=+$('#qm').value,d=+$('#qd').value,fl=['all',['>=',['get','mag'],m],['<=',['get','dep'],d]];['q-pt','q-heat'].forEach(i=>map.getLayer(i)&&map.setFilter(i,fl))}
+function setQ(on){vis.q=on?1:0;$('#qon').checked=$('#qon2').checked=!!on;const v=a=>vis.q&&a?'visible':'none';map.getLayer('q-pt')&&map.setLayoutProperty('q-pt','visibility',v(qm!=='heat'));map.getLayer('q-heat')&&map.setLayoutProperty('q-heat','visibility',v(qm!=='pt'));
+ $('#qst').classList.toggle('hide',!on);if(on){if(!qLoaded)loadQuakes();else quakeStats()}}
+$('#qon').onchange=e=>setQ(e.target.checked);$('#qon2').onchange=e=>setQ(e.target.checked);
+$('#qld').onclick=()=>{loadQuakes()};
+$('#qmode').onchange=e=>{qm=e.target.value;setQ(!!vis.q)};
+$('#qm').oninput=e=>{$('#qmv').textContent=fmt(e.target.value,1);qFilter();quakeStats()};
+$('#qd').oninput=e=>{$('#qdv').textContent=e.target.value;qFilter();quakeStats()};
+function quakeStats(){const a=qFiltered(),c=$('#qst');if(!vis.q){c.classList.add('hide');return}c.classList.remove('hide');
+ if(!a.length){c.innerHTML='<h3>Statistik seismisitas</h3>Tidak ada data (muat katalog).';return}
+ const mx=a.reduce((b,f)=>f.properties.mag>b.properties.mag?f:b),md=a.reduce((s,f)=>s+f.properties.dep,0)/a.length;
+ const bins=[['M < 4',f=>f.properties.mag<4],['M 4–5',f=>f.properties.mag>=4&&f.properties.mag<5],['M 5–6',f=>f.properties.mag>=5&&f.properties.mag<6],['M 6–7',f=>f.properties.mag>=6&&f.properties.mag<7],['M ≥ 7',f=>f.properties.mag>=7]],
+ dbs=[['<70 km',f=>f.properties.dep<70],['70–300',f=>f.properties.dep>=70&&f.properties.dep<300],['>300 km',f=>f.properties.dep>=300]];
+ const hb=(L,col)=>{const n=L.map(([t,fn])=>[t,a.filter(fn).length]),m=Math.max(1,...n.map(x=>x[1]));return n.map(([t,v])=>`<div class="hb"><span>${t}</span><i style="width:${v/m*140}px;background:${col}"></i>${fmt(v,0)}</div>`).join('')};
+ const ys=new Map();a.forEach(f=>ys.set(f.properties.yr,(ys.get(f.properties.yr)||0)+1));const yl=[...ys].sort((x,y)=>x[0]-y[0]).slice(-12),ym=Math.max(...yl.map(x=>x[1]));
+ c.innerHTML=`<h3>Statistik seismisitas (terfilter)</h3><table class="tb"><tr><td>Jumlah kejadian</td><td>${fmt(a.length,0)}</td></tr><tr><td>Magnitudo terbesar</td><td>M ${mx.properties.mag.toFixed(1)}</td></tr><tr><td>Kedalaman rata-rata</td><td>${fmt(md,0)} km</td></tr></table><div class="sub"><span>Terbesar: ${X(mx.properties.pl)} · ${new Date(mx.properties.t).getUTCFullYear()}</span></div><div class="sub"><span>Per magnitudo</span></div>${hb(bins,'#dc2626')}<div class="sub"><span>Per kedalaman</span></div>${hb(dbs,'#ea580c')}<div class="sub"><span>Per tahun (maks. 12 tahun terakhir)</span></div>${yl.map(([y,v])=>`<div class="hb"><span>${y}</span><i style="width:${v/ym*140}px;background:#2563eb"></i>${fmt(v,0)}</div>`).join('')}`}
+/* GEM sesar aktif */
+async function loadGEM(){setBar(20,'Mengunduh basis data sesar aktif GEM (berukuran besar)…');
+ try{let g=await idb('get',0,'gem1').catch(()=>null);
+  if(!g){const r=await fetch('https://raw.githubusercontent.com/GEMScienceTools/gem-global-active-faults/master/geojson/gem_active_faults_harmonized.geojson');if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json(),B=[102,-12,112,-3.5];
+   const inB=c=>c[0]>=B[0]&&c[0]<=B[2]&&c[1]>=B[1]&&c[1]<=B[3];g=[];
+   for(const f of j.features||[]){const t=f.geometry&&f.geometry.type;if(t!=='LineString'&&t!=='MultiLineString')continue;const L=t==='LineString'?[f.geometry.coordinates]:f.geometry.coordinates;const kept=L.filter(l=>l.some(inB));if(!kept.length)continue;const p=f.properties||{},sl=String(p.slip_type||p.slip||''),s=/sub/i.test(sl)?'sub':/rev|thrust/i.test(sl)?'rev':/nor/i.test(sl)?'nor':'ss';
+    g.push({type:'Feature',properties:{nm:p.name||p.catalog_name||'Sesar aktif',sl:sl||'tak diketahui',st:s},geometry:{type:'MultiLineString',coordinates:kept}})}
+   idb('put',g,'gem1').catch(()=>0)}
+  GEMF=g;map.getSource('gem')&&map.getSource('gem').setData(fc(GEMF));setBar(100,`Sesar GEM dimuat: ${GEMF.length} segmen di wilayah ini`)}
+ catch(e){setBar(100,'Gagal memuat GEM: '+e.message);$('#gemc').checked=false;setVis('gem',false)}}
+$('#gemc').onchange=e=>{setVis('gem',e.target.checked);if(e.target.checked&&!GEMF.length)loadGEM()};
+/* ===== Alat ukur ===== */
+let tool=null,TP=[],PR=null;
+const TN={dist:'Ukur jarak',area:'Ukur luas',rad:'Radius / buffer',pt:'Titik · koordinat & UTM',prof:'Profil elevasi',das:'Delineasi DAS'};
+function setTool(t){tool=tool===t?null:t;TP=[];$$('[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===tool));$('#dasb').classList.toggle('on',tool==='das');
+ map.doubleClickZoom[tool?'disable':'enable']();map.getCanvas().style.cursor=tool?'crosshair':'';updMeas()}
+$$('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+$('#dasb').onclick=()=>setTool('das');
+const BTN=`<div class="row" style="margin-top:8px"><button class="btn" data-a="undo">Urungkan</button><button class="btn" data-a="done">Selesai</button><button class="btn" data-a="clear">Hapus</button><button class="btn" data-a="off">Tutup</button></div>`;
+function updMeas(){const s=map.getSource('meas'),res=$('#res'),F=[];
+ if(!tool){s&&s.setData(fc([]));res.classList.add('hide');return}
+ res.classList.remove('hide');let h=`<h3>${TN[tool]}</h3>`;
+ const pts=TP.map(p=>({type:'Feature',properties:{},geometry:{type:'Point',coordinates:p}}));
+ if(tool==='dist'||tool==='prof'){if(TP.length>1)F.push({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:TP}});let d=0,rows='';
+  for(let i=1;i<TP.length;i++){const k=hav(TP[i-1],TP[i]);d+=k;rows+=`<tr><td>Ruas ${i}: ${fmt(brg(TP[i-1],TP[i]),1)}° ${cpn(brg(TP[i-1],TP[i]))}</td><td>${fmt(k,3)} km</td></tr>`}
+  h+=TP.length<2?'Klik titik awal dan titik berikutnya…':`<table class="tb"><tr><td><b>Total</b></td><td>${fmt(d,3)} km</td></tr><tr><td>Dalam meter / mil / mil laut</td><td>${fmt(d*1000,0)} m · ${fmt(d/1.609344,2)} mi · ${fmt(d/1.852,2)} nmi</td></tr>${rows.split('</tr>').slice(-6).join('</tr>')}</table>`;
+  if(tool==='prof')h+='<div class="note">Klik “Selesai” (atau klik ganda) untuk membuat profil elevasi.</div>'}
+ else if(tool==='area'){if(TP.length>2){const r=[...TP,TP[0]];F.push({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[r]}},{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:r}});
+   const a=ringKm2(r);let per=0;for(let i=0;i<r.length-1;i++)per+=hav(r[i],r[i+1]);
+   h+=`<table class="tb"><tr><td><b>Luas</b></td><td>${fmt(a,3)} km²</td></tr><tr><td>Hektare</td><td>${fmt(a*100,1)} ha</td></tr><tr><td>Meter persegi</td><td>${fmt(a*1e6,0)} m²</td></tr><tr><td>Keliling</td><td>${fmt(per,3)} km</td></tr></table>`}
+  else{if(TP.length>1)F.push({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:TP}});h+='Klik minimal 3 titik untuk membentuk poligon…'}}
+ else if(tool==='rad'){if(TP.length>1){const r=hav(TP[0],TP[1]),c=circle(TP[0],r);F.push({type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[c]}},{type:'Feature',properties:{},geometry:{type:'LineString',coordinates:[TP[0],TP[1]]}});
+   h+=`<table class="tb"><tr><td><b>Radius</b></td><td>${fmt(r,3)} km</td></tr><tr><td>Luas lingkaran</td><td>${fmt(ringKm2(c),2)} km²</td></tr><tr><td>Keliling</td><td>${fmt(2*Math.PI*r*Math.sin(r/R)/(r/R||1),2)} km</td></tr><tr><td>Azimut tepi</td><td>${fmt(brg(TP[0],TP[1]),1)}°</td></tr></table>`}else h+='Klik pusat, lalu klik titik tepi radius…'}
+ else if(tool==='pt'){if(TP[0]){const [lo,la]=TP[0],u=utm(la,lo);h+=`<table class="tb"><tr><td>Lintang, bujur</td><td>${la.toFixed(6)}, ${lo.toFixed(6)}</td></tr><tr><td>DMS</td><td>${dms(la,'LU','LS')}<br>${dms(lo,'BT','BB')}</td></tr><tr><td>UTM (WGS84)</td><td>${u.zone}${u.band} · ${u.E.toFixed(1)} mE · ${u.N.toFixed(1)} mN</td></tr><tr><td>Elevasi</td><td id="pe1">…</td></tr><tr><td>Lereng</td><td id="pe2">…</td></tr><tr><td>Arah hadap</td><td id="pe3">…</td></tr></table>`;
+   F.push(...[]);Promise.all([elevAt(lo,la),slopeAt(lo,la)]).then(([e,s])=>{const g=n=>document.getElementById(n);if(!g('pe1'))return;g('pe1').textContent=`${fmt(e,1)} m dpl`;g('pe2').textContent=`${fmt(s.pct,1)} % (${fmt(s.deg,1)}°)`;g('pe3').textContent=s.asp==null?'Datar':`${fmt(s.asp,0)}° ${cpn(s.asp)}`}).catch(()=>{const g=document.getElementById('pe1');if(g)g.textContent='tak tersedia'})}else h+='Klik titik di peta…'}
+ else if(tool==='das'){h+='Klik titik outlet (di dekat sungai) untuk menghitung DAS. Hasil tampil di kartu terpisah.'}
+ s&&s.setData(fc([...F,...pts]));res.innerHTML=h+(tool==='das'||tool==='pt'?`<div class="row" style="margin-top:8px"><button class="btn" data-a="clear">Hapus</button><button class="btn" data-a="off">Tutup</button></div>`:BTN)}
+$('#res').addEventListener('click',e=>{const a=e.target.dataset.a;if(!a)return;if(a==='undo'){TP.pop();updMeas()}else if(a==='clear'){TP=[];updMeas()}else if(a==='off')setTool(tool);else if(a==='done')finish()});
+function finish(){if(tool==='prof'&&TP.length>1){const P=TP.slice();setTool('prof');runProfile(P)}else if(tool==='dist'||tool==='area'){const t=tool;/* biarkan hasil tampil */map.doubleClickZoom.enable();map.getCanvas().style.cursor='';}}
+function toolClick(e){const p=[e.lngLat.lng,e.lngLat.lat];
+ if(tool==='das'){runDAS(e.lngLat);return}
+ if(tool==='pt')TP=[p];else if(tool==='rad'){if(TP.length>=2)TP=[];TP.push(p)}else TP.push(p);updMeas()}
+map.on('dblclick',e=>{if(!tool||!['dist','area','prof'].includes(tool))return;if(TP.length>1){const a=TP[TP.length-1],b=TP[TP.length-2];if(Math.abs(a[0]-b[0])<1e-9&&Math.abs(a[1]-b[1])<1e-9)TP.pop()}updMeas();finish()});
+/* goto */
+function goTo(){const m=/(-?\d+(?:[.,]\d+)?)[\s,;]+(-?\d+(?:[.,]\d+)?)/.exec($('#goto').value);if(!m)return msg('Format: lintang, bujur — mis. -6.2088, 106.8456');let a=+m[1].replace(',','.'),b=+m[2].replace(',','.');if(Math.abs(a)>90){[a,b]=[b,a]}
+ map.flyTo({center:[b,a],zoom:Math.max(map.getZoom(),12.5)});POP([b,a],`<b>Koordinat</b><div class="pm">${a.toFixed(5)}, ${b.toFixed(5)}</div>`)}
+$('#gobtn').onclick=goTo;$('#goto').addEventListener('keydown',e=>{if(e.key==='Enter')goTo()});
+$('#imp').onchange=e=>{if(e.target.checked){scI=new maplibregl.ScaleControl({unit:'imperial'});map.addControl(scI,'bottom-right')}else if(scI){map.removeControl(scI);scI=null}};
+/* ===== Grid ===== */
+function gridStep(){const v=$('#gs').value;if(v!=='auto')return +v;const z=map.getZoom();return z<6.5?2:z<7.5?1:z<8.5?.5:z<9.5?.25:z<10.5?.1:z<11.5?.05:z<12.5?.025:z<13.5?.01:.005}
+function updGrid(){const mode=$('#gm').value,sr=map.getSource('grid'),sp=map.getSource('gridp');if(!sr||!sp)return;
+ if(mode==='off'){sr.setData(fc([]));sp.setData(fc([]));return}
+ const b=map.getBounds(),W=b.getWest(),E=b.getEast(),S=b.getSouth(),N=b.getNorth(),F=[],P=[],lx=map.unproject([innerWidth>640?392:12,120]).lng,ty=map.unproject([innerWidth/2,18]).lat;
+ const ln=(c)=>F.push({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:c}}),pt=(c,t)=>P.push({type:'Feature',properties:{t},geometry:{type:'Point',coordinates:c}});
+ if(mode==='geo'){const st=gridStep(),dd=Math.max(0,Math.ceil(-Math.log10(st)-1e-9));
+  for(let i=Math.ceil(W/st);i<=Math.floor(E/st)&&F.length<120;i++){const x=i*st;ln([[x,S],[x,N]]);pt([x,ty],Math.abs(x).toFixed(dd)+'°'+(x>=0?'BT':'BB'))}
+  for(let i=Math.ceil(S/st);i<=Math.floor(N/st)&&F.length<240;i++){const y=i*st;ln([[W,y],[E,y]]);pt([lx,y],Math.abs(y).toFixed(dd)+'°'+(y>=0?'LU':'LS'))}}
+ else{const c=map.getCenter(),zone=Math.floor((c.lng+180)/6)+1,south=c.lat<0;
+  const cs=[[W,S],[E,S],[W,N],[E,N],[(W+E)/2,S],[(W+E)/2,N],[W,(S+N)/2],[E,(S+N)/2]].map(p=>utm(p[1],p[0],zone));
+  let e0=Math.min(...cs.map(u=>u.E)),e1=Math.max(...cs.map(u=>u.E)),n0=Math.min(...cs.map(u=>u.N)),n1=Math.max(...cs.map(u=>u.N));
+  const z=map.getZoom();let st=z<8?50000:z<9?25000:z<10?10000:z<11?5000:z<12?2000:z<13?1000:z<14?500:250;
+  while(((e1-e0)/st>30||(n1-n0)/st>30)&&st<500000)st*=2;
+  const to=(E_,N_)=>iutm(E_,N_,zone,south);
+  for(let E_=Math.ceil(e0/st)*st;E_<=e1;E_+=st){const L=[];for(let k=0;k<=12;k++)L.push(to(E_,n0+(n1-n0)*k/12));ln(L);const tp=to(E_,n1-(n1-n0)*.04);pt(tp,fmt(E_/1000,st<1000?1:0)+' kmE')}
+  for(let N_=Math.ceil(n0/st)*st;N_<=n1;N_+=st){const L=[];for(let k=0;k<=12;k++)L.push(to(e0+(e1-e0)*k/12,N_));ln(L);const lp=to(e0+(e1-e0)*.2,N_);pt([Math.max(lp[0],lx),lp[1]],fmt(N_/1000,st<1000?1:0)+' kmN')}}
+ sr.setData(fc(F));sp.setData(fc(P))}
+$('#gm').onchange=updGrid;$('#gs').onchange=updGrid;map.on('moveend',updGrid);
+/* ===== Grafik ===== */
+const fgc=()=>getComputedStyle(document.body).color;
+function cv(c){const d=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;c.width=w*d;c.height=h*d;const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);return{g,w,h}}
+function nice(a,b,n=5){const r=(b-a)||1,s=Math.pow(10,Math.floor(Math.log10(r/n))),m=r/n/s,st=(m<1.5?1:m<3?2:m<7?5:10)*s,o=[];for(let v=Math.ceil(a/st)*st;v<=b+1e-9;v+=st)o.push(+v.toFixed(6));return o}
+async function runProfile(P){const card=$('#prof');card.classList.remove('hide');$('#pt').textContent='Profil elevasi';$('#pi').textContent='Menghitung…';
+ const cum=[0];for(let i=1;i<P.length;i++)cum.push(cum[i-1]+hav(P[i-1],P[i]));const tot=cum[cum.length-1],n=Math.min(240,Math.max(30,Math.round(tot*3))),xy=[];
+ for(let k=0;k<=n;k++){const d=tot*k/n;let i=1;while(i<cum.length-1&&cum[i]<d)i++;const t=cum[i]>cum[i-1]?(d-cum[i-1])/(cum[i]-cum[i-1]):0;xy.push([P[i-1][0]+(P[i][0]-P[i-1][0])*t,P[i-1][1]+(P[i][1]-P[i-1][1])*t,d])}
+ try{const z=tot>80?11:12,el=await Promise.all(xy.map(p=>elevAt(p[0],p[1],z)));PR={xy,el,tot,P};drawProfile();drawHypo()}catch(e){$('#pi').textContent='Gagal mengambil DEM: '+e.message}}
+function drawProfile(hv){if(!PR)return;const {g,w,h}=cv($('#pc')),{xy,el,tot}=PR,L=46,B=22,T=8,Rr=10,fg=fgc();
+ const mn=Math.min(...el),mx=Math.max(...el),a=mn-(mx-mn)*.08,b=mx+(mx-mn)*.08+1,X_=d=>L+d/tot*(w-L-Rr),Y=v=>T+(1-(v-a)/(b-a))*(h-T-B);
+ g.font='10.5px system-ui';g.fillStyle=fg;g.strokeStyle='rgba(128,128,128,.25)';g.lineWidth=1;
+ nice(a,b,4).forEach(v=>{g.beginPath();g.moveTo(L,Y(v));g.lineTo(w-Rr,Y(v));g.stroke();g.textAlign='right';g.fillText(Math.round(v)+' m',L-4,Y(v)+3)});
+ nice(0,tot,6).forEach(v=>{g.textAlign='center';g.fillText(fmt(v,v<10?1:0)+' km',X_(v),h-6)});
+ const gr=g.createLinearGradient(0,T,0,h-B);gr.addColorStop(0,'rgba(37,99,235,.5)');gr.addColorStop(1,'rgba(37,99,235,.05)');
+ g.beginPath();g.moveTo(X_(0),Y(a));xy.forEach((p,i)=>g.lineTo(X_(p[2]),Y(el[i])));g.lineTo(X_(tot),Y(a));g.closePath();g.fillStyle=gr;g.fill();
+ g.beginPath();xy.forEach((p,i)=>i?g.lineTo(X_(p[2]),Y(el[i])):g.moveTo(X_(p[2]),Y(el[i])));g.strokeStyle='#2563eb';g.lineWidth=2;g.stroke();
+ if(hv!=null){const x=X_(xy[hv][2]),y=Y(el[hv]);g.strokeStyle='#f59e0b';g.lineWidth=1;g.beginPath();g.moveTo(x,T);g.lineTo(x,h-B);g.stroke();g.fillStyle='#f59e0b';g.beginPath();g.arc(x,y,4,0,7);g.fill()}
+ let asc=0,desc=0,absd=0;for(let i=1;i<el.length;i++){const d=el[i]-el[i-1];if(d>0)asc+=d;else desc-=d;absd+=Math.abs(d)}
+ const info=hv!=null?`Jarak ${fmt(xy[hv][2],2)} km · elevasi ${fmt(el[hv],1)} m · ${xy[hv][1].toFixed(4)}, ${xy[hv][0].toFixed(4)}`:`Panjang ${fmt(tot,2)} km · min ${fmt(mn,0)} m · maks ${fmt(mx,0)} m · selisih ${fmt(mx-mn,0)} m · naik ${fmt(asc,0)} m / turun ${fmt(desc,0)} m · lereng rata-rata ${fmt(absd/(tot*1000)*100,1)} % · eksagerasi vertikal sumbu bebas (tidak 1:1)`;
+ $('#pi').textContent=info}
+$('#pc').addEventListener('mousemove',e=>{if(!PR)return;const r=e.target.getBoundingClientRect(),x=e.clientX-r.left,d=Math.max(0,Math.min(1,(x-46)/(r.width-56)))*PR.tot;let i=0;while(i<PR.xy.length-1&&PR.xy[i][2]<d)i++;drawProfile(i);const s=map.getSource('profpt');s&&s.setData(fc([{type:'Feature',properties:{},geometry:{type:'Point',coordinates:[PR.xy[i][0],PR.xy[i][1]]}}]))});
+$('#pc').addEventListener('mouseleave',()=>{drawProfile();const s=map.getSource('profpt');s&&s.setData(fc([]))});
+function drawHypo(){const w=$('#pqw');if(!PR||!QK.length||!vis.q){w.classList.add('hide');return}w.classList.remove('hide');
+ const half=+$('#pw').value,P=PR.P,lat0=P[0][1],k=Math.cos(lat0*rad)*111.32,xy=P.map(p=>[(p[0]-P[0][0])*k,(p[1]-lat0)*110.57]),cum=[0];
+ for(let i=1;i<xy.length;i++)cum.push(cum[i-1]+Math.hypot(xy[i][0]-xy[i-1][0],xy[i][1]-xy[i-1][1]));
+ const out=[];for(const f of qFiltered()){const c=f.geometry.coordinates,q=[(c[0]-P[0][0])*k,(c[1]-lat0)*110.57];let best=1e9,al=0;
+  for(let i=0;i<xy.length-1;i++){const ax=xy[i],bx=xy[i+1],dx=bx[0]-ax[0],dy=bx[1]-ax[1],L2=dx*dx+dy*dy,t=L2?Math.max(0,Math.min(1,((q[0]-ax[0])*dx+(q[1]-ax[1])*dy)/L2)):0,dd=Math.hypot(q[0]-ax[0]-t*dx,q[1]-ax[1]-t*dy);if(dd<best){best=dd;al=cum[i]+t*Math.sqrt(L2)}}
+  if(best<=half)out.push({a:al,d:f.properties.dep,m:f.properties.mag})}
+ const {g,w:cw,h}=cv($('#pq')),len=cum[cum.length-1]||1,Lm=46,B=22,T=8,Rr=10,fg=fgc(),md=Math.max(50,...out.map(o=>o.d)),X_=d=>Lm+d/len*(cw-Lm-Rr),Y=d=>T+d/md*(h-T-B);
+ g.font='10.5px system-ui';g.fillStyle=fg;g.strokeStyle='rgba(128,128,128,.25)';
+ nice(0,md,5).forEach(v=>{g.beginPath();g.moveTo(Lm,Y(v));g.lineTo(cw-Rr,Y(v));g.stroke();g.textAlign='right';g.fillText(Math.round(v)+' km',Lm-4,Y(v)+3)});
+ nice(0,len,6).forEach(v=>{g.textAlign='center';g.fillText(fmt(v,v<10?1:0)+' km',X_(v),h-6)});
+ const col=d=>d<30?'#ef4444':d<70?'#f97316':d<150?'#eab308':d<300?'#22c55e':'#3b82f6';
+ out.sort((a,b)=>a.m-b.m).forEach(o=>{g.beginPath();g.fillStyle=col(o.d);g.globalAlpha=.7;g.arc(X_(o.a),Y(o.d),Math.max(1.5,(o.m-2)*1.6),0,7);g.fill()});g.globalAlpha=1;
+ $('#pqi').textContent=`${fmt(out.length,0)} hiposenter dalam ±${half} km dari garis (memakai filter magnitudo/kedalaman aktif). Kedalaman bertambah ke arah palung→busur = zona Benioff.`}
+$('#pw').onchange=drawHypo;$('#pcl').onclick=()=>{$('#prof').classList.add('hide');PR=null};
+addEventListener('resize',()=>{if(PR){drawProfile();drawHypo()}});
+/* ===== DAS ===== */
+async function runDAS(ll){if(runDAS.busy)return;runDAS.busy=true;
+ try{const z=11,n=2**z,s=Math.sin(ll.lat*rad),fx=(ll.lng+180)/360*n,fy=(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n,tx=Math.floor(fx),ty=Math.floor(fy),NT=5,x0=tx-2,y0=ty-2,W=NT*256;
+  setBar(15,'DAS: mengunduh ubin DEM…');
+  const T=await Promise.all(Array.from({length:NT*NT},(_,i)=>getTile(z,x0+(i%NT),y0+Math.floor(i/NT))));
+  const E=new Float32Array(W*W);T.forEach((t,i)=>{const ox=(i%NT)*256,oy=Math.floor(i/NT)*256;for(let r=0;r<256;r++)E.set(t.subarray(r*256,r*256+256),(oy+r)*W+ox)});
+  const cs=156543.03392*Math.cos(ll.lat*rad)/n,thr=+$('#thr').value,px=Math.floor((fx-x0)*256),py=Math.floor((fy-y0)*256);
+  setBar(40,'DAS: mengisi depresi & menghitung arah aliran…');await new Promise(r=>setTimeout(r,30));
+  const t0=performance.now(),C=dasCore(E,W,cs,px,py,thr);
+  if(!C){setBar(100,'Titik berada di laut / di luar daratan. Klik di daratan dekat sungai.');return}
+  setBar(80,'DAS: membuat tampilan…');
+  const cv2=document.createElement('canvas');cv2.width=cv2.height=W;const g=cv2.getContext('2d'),im=g.createImageData(W,W),D=im.data,{M,A,main}=C;
+  for(let i=0;i<W*W;i++){if(!M[i])continue;const x=i%W,y=(i-x)/W,o=i*4;
+   const edge=x===0||y===0||x===W-1||y===W-1||!M[i-1]||!M[i+1]||!M[i-W]||!M[i+W];
+   if(edge){D[o]=190;D[o+1]=18;D[o+2]=60;D[o+3]=255}
+   else if(main[i]){D[o]=30;D[o+1]=58;D[o+2]=138;D[o+3]=255}
+   else if(A[i]>=thr){const t=Math.min(1,Math.log10(A[i]/thr)/2.2);D[o]=56-30*t;D[o+1]=189-100*t;D[o+2]=248-50*t;D[o+3]=235}
+   else{D[o]=37;D[o+1]=99;D[o+2]=235;D[o+3]=70}}
+  g.putImageData(im,0,0);
+  const tl=x=>x/n*360-180,tla=y=>Math.atan(Math.sinh(Math.PI*(1-2*y/n)))/rad;
+  DAS={url:cv2.toDataURL('image/png'),coords:[[tl(x0),tla(y0)],[tl(x0+NT),tla(y0)],[tl(x0+NT),tla(y0+NT)],[tl(x0),tla(y0+NT)]]};showDAS();
+  const oc=C.out%W,or=(C.out-oc)/W,olon=tl(x0+(oc+.5)/256),olat=tla(y0+(or+.5)/256);
+  if(dasMk)dasMk.remove();dasMk=new maplibregl.Marker({color:'#be123c'}).setLngLat([olon,olat]).addTo(map);
+  const Akm=C.n*cs*cs/1e6,Pk=C.edges*cs/1000,Lk=C.maxD/1000,Ltot=C.strm*cs*1.1/1000,Rf=Akm/(Lk*Lk||1),Rc=4*Math.PI*Akm/(Pk*Pk||1),Re=2*Math.sqrt(Akm/Math.PI)/(Lk||1),Dd=Ltot/(Akm||1),relief=C.emax-C.emin,Sc=(C.emax-E[C.out])/(C.maxD||1)*100;
+  const cl=Rf<.45?'memanjang':Rf>.7?'membulat':'sedang';
+  $('#dasr').classList.remove('hide');
+  $('#dasr').innerHTML=`<h3>Hasil delineasi DAS</h3><table class="tb"><tr><td>Outlet</td><td>${olat.toFixed(4)}, ${olon.toFixed(4)}<br>${fmt(E[C.out],0)} m dpl</td></tr><tr><td>Luas DAS (A)</td><td>${fmt(Akm,1)} km²</td></tr><tr><td>Keliling (P, ±)</td><td>${fmt(Pk,1)} km</td></tr><tr><td>Panjang sungai utama (L)</td><td>${fmt(Lk,1)} km</td></tr><tr><td>Elevasi min / rata-rata / maks</td><td>${fmt(C.emin,0)} / ${fmt(C.emean,0)} / ${fmt(C.emax,0)} m</td></tr><tr><td>Relief DAS</td><td>${fmt(relief,0)} m</td></tr><tr><td>Lereng rata-rata DAS</td><td>${fmt(C.slope,1)} %</td></tr><tr><td>Kemiringan sungai utama (±)</td><td>${fmt(Sc,2)} %</td></tr><tr><td>Faktor bentuk Rf = A/L²</td><td>${fmt(Rf,2)} (${cl})</td></tr><tr><td>Rasio sirkularitas Rc = 4πA/P²</td><td>${fmt(Rc,2)}</td></tr><tr><td>Rasio elongasi Re</td><td>${fmt(Re,2)}</td></tr><tr><td>Kerapatan drainase Dd (±)</td><td>${fmt(Dd,2)} km/km²</td></tr></table>${C.touch?'<div class="note" style="color:#b45309"><b>Peringatan:</b> DAS menyentuh tepi jendela DEM (±48 km) — luas &amp; panjang terpotong. Klik outlet lebih ke hulu.</div>':''}<div class="note">Resolusi ≈ ${fmt(cs,0)} m/sel (DEM zoom 11). Keliling dihitung dari tepi sel (cenderung lebih besar); panjang aliran diagonal dibobot √2. Ambang sungai ${thr} sel ≈ ${fmt(thr*cs*cs/1e6,2)} km². Garis biru tua = sungai utama; merah = batas DAS. Waktu hitung ${fmt((performance.now()-t0)/1000,1)} dtk.</div><div class="row" style="margin-top:6px"><button class="btn" id="dasx2">Hapus DAS</button></div>`;
+  $('#dasx2').onclick=clearDAS;setBar(100,'DAS selesai · '+fmt(Akm,1)+' km²')}
+ catch(e){console.error(e);setBar(100,'DAS gagal: '+e.message)}finally{runDAS.busy=false}}
+function clearDAS(){DAS=null;rmL('das-r');if(dasMk){dasMk.remove();dasMk=null}$('#dasr').classList.add('hide')}
+$('#dasx').onclick=clearDAS;
+/* ===== Ekspor & data ===== */
+function dl(n,t,m){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:m}));a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2500)}
+$('#gj').onclick=()=>dl('Megapolitan_Jakarta.geojson',JSON.stringify(fc([...DATA.feats,...DATA.kab,...(DATA.out?[DATA.out]:[])])),'application/geo+json');
+$('#csv').onclick=()=>{const q_=s=>'"'+String(s).replace(/"/g,'""')+'"';dl('Atribut_Kecamatan.csv','\ufeffKecamatan,Kabupaten_Kota,Provinsi_Asal,Provinsi_Baru,Status,Luas_km2\n'+DATA.feats.map(f=>{const p=f.properties;return [q_(p.kec),q_(p.kab),q_(p.pr),q_(p.prov),q_(p.t),p.km2].join(',')}).join('\n'),'text/csv')};
+$('#png').onclick=()=>{map.once('render',()=>map.getCanvas().toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Peta_Megapolitan_Jakarta.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2500)}));map.triggerRepaint()};
+const cs=r=>r.map(p=>p[0]+','+p[1]+',0').join(' ');
+const polyK=p=>`<Polygon><outerBoundaryIs><LinearRing><coordinates>${cs(p[0])}</coordinates></LinearRing></outerBoundaryIs>${p.slice(1).map(h=>`<innerBoundaryIs><LinearRing><coordinates>${cs(h)}</coordinates></LinearRing></innerBoundaryIs>`).join('')}</Polygon>`;
+const lineK=ls=>`<MultiGeometry>${ls.map(l=>`<LineString><coordinates>${cs(l)}</coordinates></LineString>`).join('')}</MultiGeometry>`;
+const sty=(i,c,w)=>`<Style id="${i}"><LineStyle><color>${c}</color><width>${w}</width></LineStyle>${i==='kec'?'<PolyStyle><color>00000000</color></PolyStyle>':''}</Style>`;
+$('#kml').onclick=()=>{
+ const kc=DATA.feats.map(f=>`<Placemark><name>${X(lbl(f))}</name><styleUrl>#kec</styleUrl><MultiGeometry>${f.geometry.coordinates.map(polyK).join('')}</MultiGeometry></Placemark>`).join('');
+ const kb=DATA.kab.map(f=>`<Placemark><name>${X('Batas '+f.properties.name)}</name><styleUrl>#${f.properties.krw?'krw':'kab'}</styleUrl>${lineK(f.geometry.coordinates)}</Placemark>`).join('');
+ const ou=DATA.out?`<Placemark><name>Provinsi Megapolitan Jakarta</name><styleUrl>#prov</styleUrl>${lineK(DATA.out.geometry.coordinates)}</Placemark>`:'';
+ dl('Megapolitan_Jakarta_Garis_Batas.kml',`<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Provinsi Megapolitan Jakarta — peta usulan</name>${sty('kec','ff004aa8',1.5)}${sty('kab','ffc55714',3)}${sty('prov','ff1800e0',6)}${sty('krw','ff5d8012',4)}<Folder><name>Batas kecamatan terpilih</name>${kc}</Folder><Folder><name>Batas kabupaten/kota</name>${kb}</Folder><Folder><name>Batas luar provinsi usulan</name>${ou}</Folder><Placemark><name>Ibu kota provinsi — Jakarta Pusat</name><Point><coordinates>106.8272,-6.1754,0</coordinates></Point></Placemark></Document></kml>`,'application/vnd.google-earth.kml+xml')};
+let upN=0;const UC=['#e11d48','#16a34a','#7c3aed','#0891b2','#d97706'];
+$('#upf').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());const data=j.type==='FeatureCollection'?j:j.type==='Feature'?fc([j]):fc([{type:'Feature',properties:{},geometry:j}]);
+ const u={id:++upN,name:f.name,data,c:UC[upN%UC.length]};UP.push(u);addUP(u);const b=bb(data.features.map(x=>x.geometry.coordinates));fit(b,{maxZoom:13});msg(`Layer "${f.name}" ditambahkan (${data.features.length} fitur)`)}catch(err){msg('GeoJSON tidak valid: '+err.message)}e.target.value=''};
+$('#upx').onclick=()=>{UP.forEach(u=>{['f','l','p'].forEach(s=>rmL2('up-'+u.id+s));if(map.getSource('up-'+u.id))map.removeSource('up-'+u.id)});UP=[]};
+let cuN=0;
+function drawCus(){$('#cusl').innerHTML=CUS.map(c=>`<div class="sub"><span>${X(c.n)}</span><input type="range" min="10" max="100" value="${c.op*100}" data-cuo="${c.id}" style="width:90px"></div>`).join('')}
+$('#cusl').addEventListener('input',e=>{const id=e.target.dataset.cuo;if(!id)return;const c=CUS.find(x=>x.id==id);c.op=e.target.value/100;map.getLayer('cu-'+id)&&map.setPaintProperty('cu-'+id,'raster-opacity',c.op)});
+$('#wmsa').onclick=()=>{let u=$('#wmsu').value.trim(),n=$('#wmsn').value.trim()||('Layer '+(cuN+1));if(!/^https?:\/\//.test(u))return msg('URL harus diawali http(s)://');
+ if(!/\{z\}|\{bbox-epsg-3857\}/.test(u)){u+=(u.includes('?')?'&':'?')+'service=WMS&version=1.1.1&request=GetMap&format=image/png&transparent=true&srs=EPSG:3857&width=256&height=256&styles=&bbox={bbox-epsg-3857}';msg('URL WMS dilengkapi parameter GetMap standar — pastikan parameter layers ada di URL.')}
+ const c={id:++cuN,n,u,op:.8};CUS.push(c);rasLayer('cu-'+c.id,c.u,19,c.n,c.op,'hill');drawCus()};
+$('#wmsx').onclick=()=>{CUS.forEach(c=>rmL('cu-'+c.id));CUS=[];drawCus()};
+/* ===== Muat ===== */
+function prep(d){
+ d.bbs=d.feats.map(f=>bb(f.geometry.coordinates));
+ const m=new Map(),ord=['DKI','JABAR','BANTEN','KRW'],cw=new Map();
+ d.feats.forEach((f,i)=>{const p=f.properties;let g=m.get(p.grp);if(!g)m.set(p.grp,g={name:p.grp,prov:p.t==='karawang-city'?'KRW':p.prov,n:0,km2:0,b:d.bbs[i]});g.n++;g.km2+=p.km2;g.b=mergeB(g.b,d.bbs[i]);
+  let big=null,ba=-1;f.geometry.coordinates.forEach(pl=>{const a=ringKm2(pl[0]);if(a>ba){ba=a;big=pl[0]}});if(big){const c=cen(big),w=Math.max(.1,p.km2);let o=cw.get(p.grp);if(!o)cw.set(p.grp,o={x:0,y:0,w:0});o.x+=c[0]*w;o.y+=c[1]*w;o.w+=w}});
+ d.groups=[...m.values()].sort((a,b)=>ord.indexOf(a.prov)-ord.indexOf(b.prov)||a.name.localeCompare(b.name));
+ d.kabp=[...cw].map(([n,o])=>({type:'Feature',properties:{n},geometry:{type:'Point',coordinates:[o.x/o.w,o.y/o.w]}}));
+ d.all=d.groups.map(g=>g.b).reduce(mergeB);
+ d.sb={type:'Feature',properties:{name:'Kep. Seribu'},geometry:{type:'Polygon',coordinates:[envelope(d)]}};d.isl=[];let ib=null;
+ d.feats.forEach(f=>{if(!/seribu/i.test(f.properties.kab))return;f.geometry.coordinates.forEach(p=>{const b=bb(p);ib=ib?mergeB(ib,b):b;d.isl.push({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[(b[0]+b[2])/2,(b[1]+b[3])/2]}})})});
+ if(ib)d.isl.push({type:'Feature',properties:{lab:1,n:'Kepulauan Seribu'},geometry:{type:'Point',coordinates:[(ib[0]+ib[2])/2,(ib[1]+ib[3])/2]}})}
+function ui(){
+ $('#sK').textContent=DATA.feats.length;$('#sB').textContent=DATA.groups.length;
+ $('#sL').textContent=Math.round(DATA.groups.reduce((s,g)=>s+g.km2,0)).toLocaleString('id-ID');
+ $('#dl').innerHTML=[...DATA.feats].sort((a,b)=>lbl(a).localeCompare(lbl(b))).map(f=>`<option value="${X(lbl(f))}">`).join('');
+ $('#list').innerHTML=DATA.groups.map((g,i)=>`<button class="grp" data-g="${i}"><i class="dot" style="background:${PC[g.prov]}"></i>${X(g.name)}<em>${g.n}</em></button>`).join('');
+ $('#list').onclick=e=>{const b=e.target.closest('[data-g]');if(b)fit(DATA.groups[b.dataset.g].b)};
+ $('#q').disabled=false;['all','core','kml','gj','csv','re'].forEach(id=>$('#'+id).disabled=false)}
+function show(){if(!styleReady)return;if(map.getSource('kec')){map.getSource('kec').setData(fc(DATA.feats));map.getSource('kab').setData(fc(DATA.kab));map.getSource('kabp').setData(fc(DATA.kabp||[]));map.getSource('out').setData(fc(DATA.out?[DATA.out]:[]));map.getSource('isl').setData(fc(DATA.isl));map.getSource('sbr')&&map.getSource('sbr').setData(fc(DATA.sb?[DATA.sb]:[]))}else ensure()}
+const BB='(-7.45,105.85,-5.35,107.95)',OV=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+async function ov(qq){const c=new AbortController();try{return await Promise.any(OV.map(async u=>{const r=await fetch(u,{method:'POST',body:'data='+encodeURIComponent('[out:json][timeout:50];'+qq),signal:c.signal});if(!r.ok)throw 0;return(await r.json()).elements}))}finally{c.abort()}}
+const gcls=t=>t.waterway==='waterfall'||t.natural==='hot_spring'?'wf':t.natural==='beach'?'bc':t.natural==='water'?'lk':t.boundary==='national_park'||t.leisure==='nature_reserve'?'nr':t.aeroway==='aerodrome'?'ap':t.railway==='station'?'st':/^(island|islet)$/.test(t.place||'')?'pl':null;
+function pushEx(){['rv','pk','geo'].forEach(k=>map.getSource(k)&&map.getSource(k).setData(fc(EX[k]||[])))}
+async function loadExtras(){
+ const x=await idb('get',0,'x6').catch(()=>null);EX=Object.assign({rv:[],pk:[],geo:[]},x||{});pushEx();
+ if(x&&Date.now()-x.ts<2592e6&&['rv','pk','geo'].every(k=>EX[k].length))return;
+ const T=(k,qq,f)=>ov(qq).then(e=>{EX[k]=f(e);pushEx()}).catch(e=>console.warn(k,e));
+ await Promise.all([
+  T('rv','way["waterway"="river"]["name"~"Ciliwung|Cisadane|Citarum|Bekasi|Cikeas|Cidurian|Ciujung|Angke|Pesanggrahan|Cimandiri|Cibeet|Ciberang|Cimadur|Cibareno|Cileungsi|Cipamingkis|Cikaso|Cisokan|Cibanten|Mookervaart"]'+BB+';out geom;',e=>e.filter(w=>w.geometry).map(w=>({type:'Feature',properties:{n:w.tags.name},geometry:{type:'LineString',coordinates:w.geometry.map(p=>[p.lon,p.lat])}}))),
+  T('pk','node["natural"~"^(peak|volcano)$"]["name"]["ele"]'+BB+';out;',e=>e.filter(n=>parseFloat(n.tags.ele)>=700).map(n=>({type:'Feature',properties:{n:n.tags.name,e:Math.round(parseFloat(n.tags.ele))},geometry:{type:'Point',coordinates:[n.lon,n.lat]}}))),
+  T('geo','(nwr["waterway"="waterfall"]["name"]'+BB+';nwr["natural"="hot_spring"]["name"]'+BB+';nwr["natural"="beach"]["name"]'+BB+';nwr["natural"="water"]["water"~"^(lake|reservoir)$"]["name"]'+BB+';nwr["boundary"="national_park"]["name"]'+BB+';nwr["leisure"="nature_reserve"]["name"]'+BB+';nwr["aeroway"="aerodrome"]["name"]'+BB+';node["railway"="station"]["name"]'+BB+';node["place"~"^(island|islet)$"]["name"](-6.3,105.8,-5.1,107.0););out center tags;',e=>{const qs=new Set;return e.map(o=>{const t=o.tags||{},k=gcls(t),y=o.lat??(o.center&&o.center.lat),x=o.lon??(o.center&&o.center.lon),n=t.name;if(!k||y==null||!n)return null;const id=k+n+x.toFixed(2)+y.toFixed(2);if(qs.has(id))return null;qs.add(id);return{type:'Feature',properties:{n,k},geometry:{type:'Point',coordinates:[x,y]}}}).filter(Boolean)})]);
+ EX.ts=Date.now();idb('put',EX,'x6').catch(()=>0)}
+function finish2(d){setBar(100,d.miss&&d.miss.length?'Termuat, tetapi ada nama kecamatan yang belum cocok: '+d.miss.join(' | '):`Siap · ${d.feats.length} kecamatan dari BIG`+(d.out?'':' (batas luar gagal disusun)'))}
+async function init(force){loadExtras();
+ ['all','core','kml','gj','csv','re'].forEach(id=>$('#'+id).disabled=true);
+ try{
+  let d=!force&&await idb('get',0,'d6').catch(()=>null);
+  if(d&&Date.now()-d.ts<12096e5){setBar(60,'Memuat dari cache lokal…');prep(d);DATA=d;show();ui();fit(d.all,{duration:0})}
+  else{
+   d=await build();prep(d);DATA=d;show();ui();fit(d.all,{duration:0});
+   setBar(72,'Poligon tampil · menyusun batas kab./kota di latar belakang…');
+   await dissolve(d);show();idb('put',d,'d6').catch(()=>0)}
+  finish2(d);
+ }catch(e){console.error(e);setBar(100,'Gagal memuat data BIG: '+e.message+'. Periksa koneksi internet lalu klik “Muat ulang data”.');$('#re').disabled=false}}
+init();
+</script></body></html>
